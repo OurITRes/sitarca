@@ -1,29 +1,23 @@
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-## AD Cyberwatch.AI (beta)
+# AD Cyberwatch.AI (beta)
 
 Tableau de bord de sécurité Active Directory avec vues dédiées (Command Center, Investigation & Graphe, Plan de remédiation, IA/Modèle, Paramètres & Connecteurs, Profil). Frontend React/Vite + serveur de configuration Express pour la persistance locale des paramètres et des utilisateurs.
 
-### Fonctionnalités principales
+## Fonctionnalités principales
 - Auth local + gestion des utilisateurs (création, suppression, rôles, mode local/SSO stub) via la page Paramètres.
 - Vues extraites par page : Dashboard, Détails/Investigation, Remédiation, Moteur IA/Modèle, Paramètres & Connecteurs, Profil.
 - Stockage config/utilisateurs en fichiers JSON côté serveur (`server/data/config.json`, `server/data/users.json`).
 - Sélecteur de langue, affichage nom/avatar, navigation latérale et header communs.
 
-### Prérequis
+## Prérequis
 - Node.js 18+ (recommandé) et npm.
 
-### Installation
+## Installation
 1) Installer les dépendances :
 ```
 npm install
 ```
 
-### Lancer en développement
+## Lancer en développement
 - Front + serveur config en parallèle (ports par défaut 5173 et 3001) :
 ```
 npm run dev:both
@@ -55,12 +49,3 @@ node server/config-server.js  # API config/utilisateurs
 1) `npm install`
 2) `npm run dev:both`
 3) Ouvrir http://localhost:5173 et se connecter avec un utilisateur présent dans `server/data/users.json` ou en créer un depuis Paramètres.
-
-### Remplacement complet / push
-Pour remplacer le contenu du dépôt par votre copie locale puis pousser :
-```
-git add .
-git commit -m "chore: beta frontend + config server"
-git push origin main
-```
-Si le dépôt distant doit être écrasé, utiliser `git push --force` en connaissance de cause.
