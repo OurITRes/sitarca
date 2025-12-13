@@ -351,7 +351,7 @@ export default function AdSecurityOpsCenter() {
               <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
               PingCastle: Synced 2h ago
             </div>
-            <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 relative">
+            <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 relative" title="Alertes de sécurité" aria-label="Alertes de sécurité">
               <AlertTriangle size={20} />
               <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
