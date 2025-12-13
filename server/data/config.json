@@ -1,0 +1,22 @@
+{
+  "config": {
+    "appName": "CyberWatch",
+    "appSuffix": ".AI",
+    "appSubtitle": "AD Defense Platform",
+    "language": "fr"
+  },
+  "supportedLanguages": [
+    "fr",
+    "en"
+  ],
+  "roles": [
+    {
+      "id": "admin",
+      "label": "Administrator"
+    },
+    {
+      "id": "user",
+      "label": "User"
+    }
+  ]
+}
