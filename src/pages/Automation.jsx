@@ -5,7 +5,7 @@ import ResponsiveGuard from '../components/ResponsiveGuard';
 import { t } from '../i18n';
 
 export default function AutomationPage({ ctx }) {
-  const { config, setConfig, handleSaveConfig, isSaving, supportedLanguages, addSupportedLanguage, loadUsers, setActiveView, authService } = ctx;
+  const { config, setConfig, handleSaveConfig, isSaving, authService } = ctx;
   const [ssoConfig, setSsoConfig] = useState({
     provider: config?.ssoProvider || 'azuread',
     clientId: config?.ssoClientId || '',

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global process */
 // Simple dev launcher to run both Vite and the config server in parallel
 import { spawn } from 'child_process';
 

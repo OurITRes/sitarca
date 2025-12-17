@@ -3,27 +3,28 @@ import { Card } from '../components';
 import { Save, RefreshCw, Trash2 } from 'lucide-react';
 import { t } from '../i18n';
 
-export default function ProfileView({ ctx }) {
+export default function ProfilePage({ ctx }) {
   const { authenticatedUser, currentUser, setAuthenticatedUser, setCurrentUser, authService, loadUsers, getInitials, setActiveView } = ctx;
+  const lang = ctx?.config?.language || 'fr';
   const [idState, setIdState] = useState((authenticatedUser && authenticatedUser.id) || currentUser.id || '');
   const [displayNameState, setDisplayNameState] = useState((authenticatedUser && authenticatedUser.displayName) || currentUser.displayName || '');
   const [businessRoleState, setBusinessRoleState] = useState((authenticatedUser && authenticatedUser.businessRole) || currentUser.businessRole || '');
   const [firstNameState, setFirstNameState] = useState((authenticatedUser && authenticatedUser.firstName) || currentUser.firstName || '');
   const [lastNameState, setLastNameState] = useState((authenticatedUser && authenticatedUser.lastName) || currentUser.lastName || '');
   const [profileIconState, setProfileIconState] = useState((authenticatedUser && authenticatedUser.profileIcon) || currentUser.profileIcon || '');
-  const [avatarPosX, setAvatarPosX] = useState((authenticatedUser && authenticatedUser.profileIconPosition && authenticatedUser.profileIconPosition.x) || 50);
-  const [avatarPosY, setAvatarPosY] = useState((authenticatedUser && authenticatedUser.profileIconPosition && authenticatedUser.profileIconPosition.y) || 50);
   const [avatarOffsetX, setAvatarOffsetX] = useState((authenticatedUser && authenticatedUser.profileIconCrop && (authenticatedUser.profileIconCrop.right ?? null)) || (authenticatedUser && authenticatedUser.profileIconPosition ? authenticatedUser.profileIconPosition.x : 50));
   const [avatarOffsetY, setAvatarOffsetY] = useState((authenticatedUser && authenticatedUser.profileIconCrop && (authenticatedUser.profileIconCrop.bottom ?? null)) || (authenticatedUser && authenticatedUser.profileIconPosition ? authenticatedUser.profileIconPosition.y : 50));
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const userId = authenticatedUser?.id;
+
   useEffect(() => {
     let mounted = true;
     async function loadFullUser() {
       try {
-        const id = authenticatedUser && authenticatedUser.id;
+        const id = userId;
         if (!id) return;
         const users = await authService.getUsers();
         const u = Array.isArray(users) ? users.find(x => x.id === id) : null;
@@ -35,8 +36,6 @@ export default function ProfileView({ ctx }) {
         if (u.businessRole) setBusinessRoleState(u.businessRole);
         if (u.profileIcon) setProfileIconState(u.profileIcon);
         if (u.profileIconPosition) {
-          setAvatarPosX(u.profileIconPosition.x ?? 50);
-          setAvatarPosY(u.profileIconPosition.y ?? 50);
           setAvatarOffsetX(u.profileIconPosition.x ?? 50);
           setAvatarOffsetY(u.profileIconPosition.y ?? 50);
         }
@@ -50,7 +49,7 @@ export default function ProfileView({ ctx }) {
     }
     loadFullUser();
     return () => { mounted = false; };
-  }, [authenticatedUser && authenticatedUser.id]);
+  }, [userId, authService]);
 
   useEffect(() => {
     if (lastNameState || firstNameState) {
@@ -92,7 +91,7 @@ export default function ProfileView({ ctx }) {
     reader.readAsDataURL(f);
   };
 
-  const resetAvatarPosition = () => { setAvatarPosX(50); setAvatarPosY(50); setAvatarOffsetX(50); setAvatarOffsetY(50); };
+  const resetAvatarPosition = () => { setAvatarOffsetX(50); setAvatarOffsetY(50); };
 
   const savePositionOnly = async () => {
     try {
@@ -188,7 +187,7 @@ export default function ProfileView({ ctx }) {
               <option>AE</option>
             </select>
           </div>
-          <div classname = "w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparen">
+          <div className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
             <label className="block text-xs font-semibold text-slate-700 mb-2">Roles techniques</label>
             <div className="w-full p-2 border border-slate-300 rounded bg-slate-50 text-slate-600 text-sm text-slate-600">{((authenticatedUser && authenticatedUser.roles) || currentUser.roles || []).join(', ')}</div>
           </div>

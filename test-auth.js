@@ -13,7 +13,7 @@ function hashPassword(pwd) {
 function readFull() {
   try {
     return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-  } catch (e) {
+  } catch {
     return { config: {}, supportedLanguages: [], users: [], roles: [] };
   }
 }

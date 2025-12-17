@@ -5,7 +5,7 @@ import { ResponsiveContainer, ScatterChart, CartesianGrid, XAxis, YAxis, ZAxis, 
 import ResponsiveGuard from '../components/ResponsiveGuard';
 import { t } from '../i18n';
 
-export default function RemediationView({ ctx }) {
+export default function RemediationPage({ ctx }) {
   const { remediationViewMode, setRemediationViewMode, remediationValidated, setRemediationValidated, remediationPlan, updateRemediationItem, config } = ctx;
   const lang = config?.currentLanguage || 'fr';
   return (

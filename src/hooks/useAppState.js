@@ -15,9 +15,10 @@ export const useAppState = () => {
       const interval = setInterval(() => {
         setComplianceScore(prev => prev < 82 ? prev + 0.1 : 82);
       }, 100);
-      return () => clearInterval(interval);
-    } else {
-      setComplianceScore(68);
+      return () => {
+        clearInterval(interval);
+        setComplianceScore(68);
+      };
     }
   }, [adaptiveMode]);
 

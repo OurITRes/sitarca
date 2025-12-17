@@ -1,6 +1,6 @@
 // Mock BloodHound API Service
 export const bloodhoundService = {
-  async fetchFindings(apiUrl, tokenId, tokenKey) {
+  async fetchFindings() {
     try {
       // Simulation d'un délai réseau
       await new Promise(resolve => setTimeout(resolve, 1500));

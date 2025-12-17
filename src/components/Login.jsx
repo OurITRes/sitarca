@@ -4,7 +4,7 @@ import * as authService from '../services/auth';
 import Register from './Register';
 import { t } from '../i18n';
 
-export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI', appSubtitle = '' }) {
+export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI', lang = 'fr' }) {
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI
         if (!mounted) return;
         const list = Array.isArray(res) ? res : ((res && res.users) || []);
         setFallback(list.length === 0);
-      } catch (e) {
+      } catch {
         if (!mounted) return;
         setFallback(true);
       }
@@ -66,7 +66,7 @@ export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI
     }
   };
 
-  if (showRegister) return <Register onDone={() => setShowRegister(false)} />;
+  if (showRegister) return <Register onDone={() => setShowRegister(false)} appName={appName} appSuffix={appSuffix} lang={lang} />;
 
   return (
     <div className="min-h-screen flex items-start justify-center bg-slate-50 py-12">

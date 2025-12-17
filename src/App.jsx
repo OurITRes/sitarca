@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from 'react';
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2025 OurITRes
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Shield, BarChart2, Network, CheckCircle, Brain, Settings, ChevronRight, AlertTriangle, Users, Globe, Radar, Compass, LayoutDashboard, ScanEye, ScanSearch, Cable, ArrowDown, ArrowDownUp } from 'lucide-react';
 
 import { useAppState, useRemediationActions, useConfig, useMLSimulation } from './hooks';
@@ -45,9 +48,6 @@ export default function AdSecurityOpsCenter() {
   const { isSimulating, runSimulation } = useMLSimulation(setAdaptiveMode);
 
   const lang = config?.language || 'fr';
-  const [langMenuOpen, setLangMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [users, setUsers] = useState([]);
 
   const loadUsers = async () => {
     try {
@@ -60,13 +60,18 @@ export default function AdSecurityOpsCenter() {
     }
   };
 
-  const getDefaultDisplayName = () => config?.defaultUserName || 'Jean Sécurité';
+  const getDefaultDisplayName = useCallback(() => config?.defaultUserName || 'Jean Sécurité', [config]);
 
   const [currentUser, setCurrentUser] = useState({
     id: 'local',
     displayName: getDefaultDisplayName(),
     roles: ['admin'],
   });
+
+  const effectiveCurrentUser = useMemo(
+    () => ({ ...currentUser, displayName: currentUser.displayName || getDefaultDisplayName() }),
+    [currentUser, getDefaultDisplayName]
+  );
 
   const [authenticatedUser, setAuthenticatedUser] = useState(() => {
     try {
@@ -77,6 +82,10 @@ export default function AdSecurityOpsCenter() {
     }
   });
 
+  const [users, setUsers] = useState([]);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
   useEffect(() => {
     if (authenticatedUser) {
       sessionStorage.setItem('adsec_user', JSON.stringify(authenticatedUser));
@@ -86,18 +95,14 @@ export default function AdSecurityOpsCenter() {
   }, [authenticatedUser]);
 
   useEffect(() => {
-    setCurrentUser((u) => ({ ...u, displayName: getDefaultDisplayName() }));
-  }, [config?.defaultUserName]);
-
-  useEffect(() => {
     if (activeView === 'connectors' || activeView === 'userspage') {
       loadUsers();
     }
   }, [activeView]);
 
   const getInitials = (fallbackName) => {
-    const fn = (authenticatedUser && authenticatedUser.firstName) || (currentUser && currentUser.firstName) || '';
-    const ln = (authenticatedUser && authenticatedUser.lastName) || (currentUser && currentUser.lastName) || '';
+    const fn = (authenticatedUser && authenticatedUser.firstName) || (effectiveCurrentUser && effectiveCurrentUser.firstName) || '';
+    const ln = (authenticatedUser && authenticatedUser.lastName) || (effectiveCurrentUser && effectiveCurrentUser.lastName) || '';
     const a = (fn || '').trim();
     const b = (ln || '').trim();
     if (a || b) return ((a ? a[0] : '') + (b ? b[0] : '')).toUpperCase();
@@ -144,7 +149,7 @@ export default function AdSecurityOpsCenter() {
     loadUsers,
     authenticatedUser,
     setAuthenticatedUser,
-    currentUser,
+    currentUser: effectiveCurrentUser,
     setCurrentUser,
     getInitials,
     authService,
@@ -159,7 +164,8 @@ export default function AdSecurityOpsCenter() {
         }}
         appName={config.appName}
         appSuffix={config.appSuffix}
-        appSubtitle={t('app.subtitle', config.language)}
+        appSubtitle={t('app.subtitle', lang)}
+        lang={lang}
       />
     );
   }
@@ -173,7 +179,8 @@ export default function AdSecurityOpsCenter() {
         }}
         appName={config.appName}
         appSuffix={config.appSuffix}
-        appSubtitle={t('app.subtitle', config.language)}
+        appSubtitle={t('app.subtitle', lang)}
+        lang={lang}
       />
     );
   }
@@ -284,9 +291,9 @@ export default function AdSecurityOpsCenter() {
               className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0 cursor-pointer"
               onClick={() => setUserMenuOpen(!userMenuOpen)}
             >
-              {((authenticatedUser && authenticatedUser.profileIcon) || currentUser.profileIcon) ? (
+              {((authenticatedUser && authenticatedUser.profileIcon) || effectiveCurrentUser.profileIcon) ? (
                 <img
-                  src={(authenticatedUser && authenticatedUser.profileIcon) || currentUser.profileIcon}
+                  src={(authenticatedUser && authenticatedUser.profileIcon) || effectiveCurrentUser.profileIcon}
                   alt="avatar"
                   className="w-10 h-10 rounded-full object-cover"
                   style={{
@@ -296,20 +303,20 @@ export default function AdSecurityOpsCenter() {
               ) : (
                 getInitials(
                   (authenticatedUser && authenticatedUser.displayName) ||
-                    currentUser.displayName ||
+                    effectiveCurrentUser.displayName ||
                     (authenticatedUser && authenticatedUser.id) ||
-                    currentUser.id
+                    effectiveCurrentUser.id
                 )
               )}
             </div>
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-sm font-bold text-white truncate">
-                {(authenticatedUser && authenticatedUser.displayName) || currentUser.displayName}
+                {(authenticatedUser && authenticatedUser.displayName) || effectiveCurrentUser.displayName}
               </span>
               <span className="text-xs text-slate-400 truncate">
                 {(() => {
-                  const businessRole = (authenticatedUser && authenticatedUser.businessRole) || currentUser.businessRole;
-                  const appRoles = (authenticatedUser && authenticatedUser.roles) || currentUser.roles || [];
+                  const businessRole = (authenticatedUser && authenticatedUser.businessRole) || effectiveCurrentUser.businessRole;
+                  const appRoles = (authenticatedUser && authenticatedUser.roles) || effectiveCurrentUser.roles || [];
                   const appRole = appRoles.length > 0 ? appRoles[0] : 'user';
                   return businessRole ? `${businessRole.toUpperCase()} __ ${appRole}` : appRole;
                 })()}
@@ -412,6 +419,12 @@ export default function AdSecurityOpsCenter() {
         {activeView === 'userspage' && <UsersPage ctx={ctx} />}
         {activeView === 'languages' && <LanguagesPage ctx={ctx} />}
         {activeView === 'profile' && <ProfilePage ctx={ctx} />}
+        
+        <footer className="mt-8 pb-4 text-center text-xs text-slate-500">
+          <a href="https://github.com/OurITRes/ad-cyberwatch.ai" target="_blank" rel="noopener noreferrer" className="hover:text-slate-700 underline">
+            Source code
+          </a>
+        </footer>
       </main>
     </div>
   );

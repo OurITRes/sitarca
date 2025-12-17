@@ -25,3 +25,29 @@ dist-ssr
 
 # Unused files
 unused/
+# Environment variables (NEVER commit real values)
+.env
+.env.local
+.env.*.local
+
+# XML exports (PingCastle, BloodHound, etc.)
+*.xml
+!PingCastleRules.xml
+
+# Data exports and imports (production data)
+/data_exports/
+/data_imports/
+/raw_data/
+/exports/
+/imports/
+
+# Local data files (temporary uploads, caches)
+/server/data_exports/
+/server/data_imports/
+/server/uploads/
+/server/.cache/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp

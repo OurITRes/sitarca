@@ -5,7 +5,7 @@ import ResponsiveGuard from '../components/ResponsiveGuard';
 import { t } from '../i18n';
 
 export default function SettingsView({ ctx }) {
-  const { config, setConfig, handleSaveConfig, isSaving, supportedLanguages, addSupportedLanguage, loadUsers, setActiveView, authService } = ctx;
+  const { config, setConfig, handleSaveConfig, isSaving } = ctx;
   const lang = config?.currentLanguage || 'fr';
   return (
     <div className="animate-in fade-in duration-300 space-y-8">

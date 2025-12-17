@@ -3,7 +3,7 @@ import { Shield } from 'lucide-react';
 import * as authService from '../services/auth';
 import { t } from '../i18n';
 
-export default function Register({ onDone, appName = 'CyberWatch', appSuffix = '.AI' }) {
+export default function Register({ onDone, appName = 'CyberWatch', appSuffix = '.AI', lang = 'fr' }) {
   const [id, setId] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

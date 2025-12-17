@@ -1,7 +1,7 @@
 const API_BASE = 'http://127.0.0.1:3001';
 
 export async function getUsers(){
-  try{ const r = await fetch(`${API_BASE}/users`); if (!r.ok) throw new Error('no'); return await r.json(); }catch(e){ return []; }
+  try{ const r = await fetch(`${API_BASE}/users`); if (!r.ok) throw new Error('no'); return await r.json(); }catch{ return []; }
 }
 
 export async function createUser(user){
@@ -38,11 +38,11 @@ export async function deleteUser(id){
 }
 
 export async function getRoles(){
-  try{ const r = await fetch(`${API_BASE}/roles`); if (!r.ok) throw new Error('no'); return await r.json(); }catch(e){ return []; }
+  try{ const r = await fetch(`${API_BASE}/roles`); if (!r.ok) throw new Error('no'); return await r.json(); }catch{ return []; }
 }
 
 export async function createRole(role){
-  try{ const r = await fetch(`${API_BASE}/roles`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(role) }); return await r.json(); }catch(e){ return null; }
+  try{ const r = await fetch(`${API_BASE}/roles`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(role) }); return await r.json(); }catch{ return null; }
 }
 
 export async function login(id, password){
@@ -56,7 +56,7 @@ export async function login(id, password){
         const users = await getUsers();
         const u = Array.isArray(users) ? users.find(x => x.id === id) : (users?.find?.(x => x.id === id));
         if (u && u.displayName) data.displayName = u.displayName;
-      } catch (e) {
+      } catch {
         /* ignore enrichment errors */
       }
     }
@@ -67,7 +67,7 @@ export async function login(id, password){
 }
 
 export async function startSSO(){
-  try{ const r = await fetch(`${API_BASE}/auth/sso`, { method: 'POST' }); return await r.json(); }catch(e){ return null; }
+  try{ const r = await fetch(`${API_BASE}/auth/sso`, { method: 'POST' }); return await r.json(); }catch{ return null; }
 }
 
 export default { getUsers, createUser, updateUser, deleteUser, getRoles, createRole, login, startSSO };

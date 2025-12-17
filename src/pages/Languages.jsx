@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Card } from '../components';
 import { Globe, PlusCircle, Edit2, Save, X, Shield } from 'lucide-react';
 import { TRANSLATIONS } from '../i18n/index.js';
-import { t } from '../i18n';
 
 export default function LanguagesPage({ ctx }) {
   const { config, setConfig, supportedLanguages, addSupportedLanguage, authenticatedUser, currentUser } = ctx;
@@ -18,7 +17,6 @@ export default function LanguagesPage({ ctx }) {
 
   const [selectedLangForTranslation, setSelectedLangForTranslation] = useState(initialSelectedLang);
   const [editedTranslations, setEditedTranslations] = useState(null);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [ignoredKeys, setIgnoredKeys] = useState(new Set());
   const [editingRowKey, setEditingRowKey] = useState(null);
 
@@ -137,18 +135,12 @@ export default function LanguagesPage({ ctx }) {
               }
             });
           }
-          setIsEditMode(false);
         }
       }
     } catch (error) {
       console.error('Erreur complète:', error);
       alert('Erreur: ' + error.message + '\n\nVérifiez que le serveur config tourne sur le port 3001.\nVoir la console (F12) pour plus de détails.');
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditedTranslations(null);
-    setIsEditMode(false);
   };
 
   return (
@@ -234,7 +226,6 @@ export default function LanguagesPage({ ctx }) {
                   onChange={(e) => {
                     setSelectedLangForTranslation(e.target.value);
                     setEditedTranslations(null);
-                    setIsEditMode(false);
                     setIgnoredKeys(new Set());
                   }}
                   className="w-full md:w-64 p-2 border border-slate-300 rounded text-sm"

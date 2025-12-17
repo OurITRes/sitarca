@@ -4,8 +4,9 @@ import { Users, RefreshCw, Plus, Shield, ShieldCheck, Trash2, Award, X } from 'l
 import { t } from '../i18n';
 
 export default function UsersPage({ ctx }) {
-  const { users = [], loadUsers, setActiveView, authService, config, setConfig, handleSaveConfig } = ctx;
-  const lang = config?.currentLanguage || 'fr';
+  const { users = [], loadUsers, setActiveView, authService, config, setConfig, handleSaveConfig, authenticatedUser } = ctx;
+  const lang = config?.language || 'fr';
+  const isAdmin = (authenticatedUser?.roles || []).includes('admin');
   const [roles, setRoles] = useState(config?.appRoles || ['admin', 'analyst', 'viewer']);
   const [newRole, setNewRole] = useState('');
 
@@ -42,6 +43,7 @@ export default function UsersPage({ ctx }) {
         </div>
       </div>
 
+      {isAdmin && (
       <Card className="border-t-4 border-t-blue-500">
         <div className="p-4">
           <h3 className="text-lg font-bold text-slate-800 mb-3">{t('users.usersList', lang)}</h3>
@@ -102,7 +104,9 @@ export default function UsersPage({ ctx }) {
           )}
         </div>
       </Card>
+      )}
 
+      {isAdmin && (
       <Card className="border-t-4 border-t-amber-500">
         <div className="flex items-center space-x-3 mb-6">
           <div className="p-2 bg-amber-100 rounded-lg">
@@ -175,6 +179,7 @@ export default function UsersPage({ ctx }) {
            </p>
         </div>
       </Card>
+      )}
     </div>
   );
 }

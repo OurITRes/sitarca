@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2025 OurITRes
+
+/* global process */
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -36,7 +40,7 @@ if (!fs.existsSync(USERS_FILE)) {
     const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) || {};
     const users = Array.isArray(cfg.users) ? cfg.users : [];
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-  } catch (e) {
+  } catch {
     fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2));
   }
 }
@@ -45,7 +49,7 @@ app.get('/config', (req, res) => {
   try {
     const content = fs.readFileSync(CONFIG_FILE, 'utf8');
     res.type('application/json').send(content);
-  } catch (err) {
+  } catch {
     res.status(500).send({ error: 'unable to read config' });
   }
 });
@@ -55,14 +59,14 @@ app.post('/config', (req, res) => {
     const body = req.body || {};
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(body, null, 2));
     res.send({ ok: true });
-  } catch (err) {
+  } catch {
     res.status(500).send({ error: 'unable to write config' });
   }
 });
 
 // --- Users API (separate users.json) ---
 const readUsers = () => {
-  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')) || []; } catch (e) { return []; }
+  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')) || []; } catch { return []; }
 };
 const writeUsers = (users) => {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
@@ -81,7 +85,7 @@ app.post('/users', (req, res) => {
 
   // If a plaintext password was provided, store its hash and remove plaintext
   if (user.password) {
-    try { user.passwordHash = hashPassword(user.password); } catch (e) { return res.status(500).send({ error: 'hash_error', message: 'Unable to hash password' }); }
+    try { user.passwordHash = hashPassword(user.password); } catch { return res.status(500).send({ error: 'hash_error', message: 'Unable to hash password' }); }
     delete user.password;
   }
 
@@ -97,7 +101,7 @@ app.post('/users', (req, res) => {
   user.authMode = user.authMode || 'local';
 
   users.push(user);
-  try { writeUsers(users); } catch (e) { return res.status(500).send({ error: 'write_failed', message: 'Unable to persist users file' }); }
+  try { writeUsers(users); } catch { return res.status(500).send({ error: 'write_failed', message: 'Unable to persist users file' }); }
   res.status(201).send(user);
 });
 
@@ -110,12 +114,12 @@ app.put('/users/:id', (req, res) => {
 
   // handle password update
   if (body.password) {
-    try { body.passwordHash = hashPassword(body.password); } catch (e) { return res.status(500).send({ error: 'hash_error', message: 'Unable to hash password' }); }
+    try { body.passwordHash = hashPassword(body.password); } catch { return res.status(500).send({ error: 'hash_error', message: 'Unable to hash password' }); }
     delete body.password;
   }
 
   users[idx] = { ...users[idx], ...body };
-  try { writeUsers(users); } catch (e) { return res.status(500).send({ error: 'write_failed', message: 'Unable to persist users file' }); }
+  try { writeUsers(users); } catch { return res.status(500).send({ error: 'write_failed', message: 'Unable to persist users file' }); }
   res.send(users[idx]);
 });
 
@@ -123,7 +127,7 @@ app.delete('/users/:id', (req, res) => {
   let users = readUsers();
   const id = req.params.id;
   users = users.filter(u => u.id !== id);
-  try { writeUsers(users); } catch (e) { return res.status(500).send({ error: 'write_failed', message: 'Unable to persist users file' }); }
+  try { writeUsers(users); } catch { return res.status(500).send({ error: 'write_failed', message: 'Unable to persist users file' }); }
   res.send({ ok: true });
 });
 
@@ -132,7 +136,7 @@ app.get('/roles', (req, res) => {
   try {
     const full = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) || {};
     res.send(full.roles || []);
-  } catch (e) {
+  } catch {
     res.send([]);
   }
 });
@@ -145,7 +149,7 @@ app.post('/roles', (req, res) => {
     full.roles.push(role);
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(full, null, 2));
     res.send(role);
-  } catch (e) {
+  } catch {
     res.status(500).send({ error: 'roles_update_failed' });
   }
 });

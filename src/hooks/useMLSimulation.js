@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-export const useMLSimulation = () => {
+export const useMLSimulation = (setAdaptiveMode) => {
   const [isSimulating, setIsSimulating] = useState(false);
 
-  const runSimulation = (setAdaptiveMode) => {
+  const runSimulation = () => {
     setIsSimulating(true);
     setTimeout(() => {
       setAdaptiveMode(true);

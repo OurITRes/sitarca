@@ -12,7 +12,7 @@ export default function ResponsiveGuard({ children, className }) {
       try {
         const r = el.getBoundingClientRect();
         setVisible(r.width > 0 && r.height > 0);
-      } catch (e) {
+      } catch {
         setVisible(false);
       }
     };
@@ -21,7 +21,7 @@ export default function ResponsiveGuard({ children, className }) {
     const ro = new ResizeObserver(() => checkSize());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [ref.current]);
+  }, []);
 
   return (
     <div ref={ref} className={className} style={{ minHeight: 20 }}>
