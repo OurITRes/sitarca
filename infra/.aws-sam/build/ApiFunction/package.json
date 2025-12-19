@@ -1,0 +1,16 @@
+{
+  "name": "adcyberwatch-api-node",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Node.js Lambda API for AD-Cyberwatch",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.398.0",
+    "@aws-sdk/s3-request-presigner": "^3.398.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
+  }
+}

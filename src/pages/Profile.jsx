@@ -2,29 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../components';
 import { Save, RefreshCw, Trash2 } from 'lucide-react';
 import { t } from '../i18n';
+import { getUserFromToken } from '../services/auth';
 
 export default function ProfilePage({ ctx }) {
   const { authenticatedUser, currentUser, setAuthenticatedUser, setCurrentUser, authService, loadUsers, getInitials, setActiveView } = ctx;
   const lang = ctx?.config?.language || 'fr';
-  const [idState, setIdState] = useState((authenticatedUser && authenticatedUser.id) || currentUser.id || '');
-  const [displayNameState, setDisplayNameState] = useState((authenticatedUser && authenticatedUser.displayName) || currentUser.displayName || '');
+  
+  // Try to get user info from OIDC token first (if SSO)
+  const tokenUser = getUserFromToken();
+  const isSso = Boolean(tokenUser || (authenticatedUser && ((authenticatedUser.authMode || '').toLowerCase() === 'sso' || (authenticatedUser.authMode || '').toLowerCase() === 'oidc')));
+  const profileUserId = authenticatedUser?.email || authenticatedUser?.id;
+  
+  const [idState, setIdState] = useState((authenticatedUser && authenticatedUser.id) || tokenUser?.id || currentUser.id || '');
+  const [displayNameState, setDisplayNameState] = useState((authenticatedUser && authenticatedUser.displayName) || tokenUser?.displayName || currentUser.displayName || '');
   const [businessRoleState, setBusinessRoleState] = useState((authenticatedUser && authenticatedUser.businessRole) || currentUser.businessRole || '');
-  const [firstNameState, setFirstNameState] = useState((authenticatedUser && authenticatedUser.firstName) || currentUser.firstName || '');
-  const [lastNameState, setLastNameState] = useState((authenticatedUser && authenticatedUser.lastName) || currentUser.lastName || '');
-  const [profileIconState, setProfileIconState] = useState((authenticatedUser && authenticatedUser.profileIcon) || currentUser.profileIcon || '');
+  const [firstNameState, setFirstNameState] = useState((authenticatedUser && authenticatedUser.firstName) || tokenUser?.firstName || currentUser.firstName || '');
+  const [lastNameState, setLastNameState] = useState((authenticatedUser && authenticatedUser.lastName) || tokenUser?.lastName || currentUser.lastName || '');
+  const [profileIconState, setProfileIconState] = useState((authenticatedUser && authenticatedUser.profileIcon) || tokenUser?.picture || currentUser.profileIcon || '');
   const [avatarOffsetX, setAvatarOffsetX] = useState((authenticatedUser && authenticatedUser.profileIconCrop && (authenticatedUser.profileIconCrop.right ?? null)) || (authenticatedUser && authenticatedUser.profileIconPosition ? authenticatedUser.profileIconPosition.x : 50));
   const [avatarOffsetY, setAvatarOffsetY] = useState((authenticatedUser && authenticatedUser.profileIconCrop && (authenticatedUser.profileIconCrop.bottom ?? null)) || (authenticatedUser && authenticatedUser.profileIconPosition ? authenticatedUser.profileIconPosition.y : 50));
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
-
-  const userId = authenticatedUser?.id;
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [availableRoles, setAvailableRoles] = useState([]);
 
   useEffect(() => {
     let mounted = true;
     async function loadFullUser() {
       try {
-        const id = userId;
+        const id = profileUserId;
         if (!id) return;
         const users = await authService.getUsers();
         const u = Array.isArray(users) ? users.find(x => x.id === id) : null;
@@ -43,18 +50,37 @@ export default function ProfilePage({ ctx }) {
           if (typeof u.profileIconCrop.bottom === 'number') setAvatarOffsetY(u.profileIconCrop.bottom);
           if (typeof u.profileIconCrop.right === 'number') setAvatarOffsetX(u.profileIconCrop.right);
         }
+        // Load roles for SSO users
+        if (u.roles && Array.isArray(u.roles)) {
+          setSelectedRoles(u.roles);
+        }
       } catch (e) {
         console.warn('Unable to load full user for profile view', e);
       }
     }
     loadFullUser();
     return () => { mounted = false; };
-  }, [userId, authService]);
+  }, [profileUserId, authService]);
+
+  // Load available roles
+  useEffect(() => {
+    async function loadRoles() {
+      try {
+        const roles = await authService.getRoles();
+        setAvailableRoles(Array.isArray(roles) ? roles : []);
+      } catch (e) {
+        console.warn('Unable to load roles', e);
+      }
+    }
+    loadRoles();
+  }, [authService]);
 
   useEffect(() => {
     if (lastNameState || firstNameState) {
-      const newDisplayName = `${lastNameState}${firstNameState ? (lastNameState ? ', ' : '') + firstNameState : ''}`.trim();
-      setDisplayNameState(newDisplayName);
+      const fn = String(firstNameState || '').trim();
+      const ln = String(lastNameState || '').trim();
+      const newDisplayName = [fn, ln].filter(Boolean).join(' ').trim();
+      setDisplayNameState(newDisplayName || displayNameState);
     }
   }, [firstNameState, lastNameState]);
 
@@ -96,7 +122,7 @@ export default function ProfilePage({ ctx }) {
   const savePositionOnly = async () => {
     try {
       const payload = { profileIconPosition: { x: Number(avatarOffsetX), y: Number(avatarOffsetY) }, profileIconCrop: { bottom: Number(avatarOffsetY), right: Number(avatarOffsetX), size: 100 } };
-      const updated = await authService.updateUser(authenticatedUser.id, payload);
+      const updated = await authService.updateUser(profileUserId || authenticatedUser.id, payload);
       setAuthenticatedUser((u) => ({ ...u, ...updated }));
       setCurrentUser((u) => ({ ...u, ...updated }));
       await loadUsers();
@@ -112,7 +138,7 @@ export default function ProfilePage({ ctx }) {
     if (!confirm('Supprimer la photo de profil ?')) return;
     try {
       const payload = { profileIcon: '', profileIconPosition: null, profileIconCrop: null };
-      const updated = await authService.updateUser(authenticatedUser.id, payload);
+      const updated = await authService.updateUser(profileUserId || authenticatedUser.id, payload);
       setProfileIconState('');
       setAuthenticatedUser((u) => ({ ...u, ...updated }));
       setCurrentUser((u) => ({ ...u, ...updated }));
@@ -127,12 +153,17 @@ export default function ProfilePage({ ctx }) {
     if (newPassword && newPassword !== confirmPassword) return alert('Password confirmation does not match');
     setSavingProfile(true);
     try {
-      const payload = { id: idState, displayName: displayNameState, businessRole: businessRoleState || '', firstName: firstNameState || '', lastName: lastNameState || '' };
+      const payload = { displayName: displayNameState, businessRole: businessRoleState || '', firstName: firstNameState || '', lastName: lastNameState || '' };
+      if (!isSso) payload.id = idState;
       if (profileIconState) payload.profileIcon = profileIconState;
       payload.profileIconPosition = { x: Number(avatarOffsetX), y: Number(avatarOffsetY) };
       payload.profileIconCrop = { bottom: Number(avatarOffsetY), right: Number(avatarOffsetX), size: 100 };
-      if (newPassword) payload.password = newPassword;
-      const updated = await authService.updateUser(authenticatedUser.id, payload);
+      if (!isSso && newPassword) payload.password = newPassword;
+      if (!isSso) {
+        payload.roles = selectedRoles && selectedRoles.length > 0 ? selectedRoles : ['user'];
+      }
+      const targetId = profileUserId || authenticatedUser.id;
+      const updated = await authService.updateUser(targetId, payload);
       setAuthenticatedUser((u) => ({ ...u, ...updated }));
       setCurrentUser((u) => ({ ...u, ...updated }));
       setNewPassword('');
@@ -153,7 +184,8 @@ export default function ProfilePage({ ctx }) {
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-2">Email / ID</label>
-            <input value={idState} onChange={(e) => setIdState(e.target.value)} className="w-full p-2 border border-slate-300 rounded bg-white text-slate-800" />
+            <input value={idState} onChange={(e) => setIdState(e.target.value)} className="w-full p-2 border border-slate-300 rounded bg-white text-slate-800" disabled={isSso} />
+            {isSso && <p className="text-[11px] text-slate-500 mt-1">Géré par l&apos;IdP (lecture seule).</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -187,9 +219,39 @@ export default function ProfilePage({ ctx }) {
               <option>AE</option>
             </select>
           </div>
-          <div className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-            <label className="block text-xs font-semibold text-slate-700 mb-2">Roles techniques</label>
-            <div className="w-full p-2 border border-slate-300 rounded bg-slate-50 text-slate-600 text-sm text-slate-600">{((authenticatedUser && authenticatedUser.roles) || currentUser.roles || []).join(', ')}</div>
+          <div className="w-full p-2 border border-slate-300 rounded">
+            <label className="block text-xs font-semibold text-slate-700 mb-2">Rôles techniques</label>
+            <div className="space-y-2">
+              {availableRoles && availableRoles.length > 0 ? (
+                availableRoles.map(role => (
+                  <label key={role} className={`flex items-center gap-2 ${isSso ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={selectedRoles.includes(role)}
+                      onChange={(e) => {
+                        if (isSso) return;
+                        if (e.target.checked) {
+                          setSelectedRoles([...selectedRoles, role]);
+                        } else {
+                          setSelectedRoles(selectedRoles.filter(r => r !== role));
+                        }
+                      }}
+                      className="rounded"
+                      disabled={isSso}
+                    />
+                    <span className="text-sm text-slate-700">{role}</span>
+                  </label>
+                ))
+              ) : (
+                <div className="text-xs text-slate-500">Aucun rôle disponible</div>
+              )}
+            </div>
+            {selectedRoles.length > 0 && (
+              <div className="mt-2 p-2 bg-slate-50 rounded text-xs text-slate-700">
+                <strong>Sélectionnés:</strong> {selectedRoles.join(', ')}
+              </div>
+            )}
+            {isSso && <p className="text-[11px] text-slate-500 mt-2">Les rôles sont gérés par un administrateur.</p>}
           </div>
           <div className="space-y-4 grid grid-cols-3 gap-4">
             <div className="mt-1">
@@ -223,19 +285,21 @@ export default function ProfilePage({ ctx }) {
               </div>
             </div>
           </div>
-          <div className="border-t border-slate-200 pt-4 mt-4">
-            <h3 className="font-semibold text-slate-800 mb-4">Changer le mot de passe</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-2">Nouveau mot de passe (optionnel)</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder={t('profile.keepCurrent', lang)} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-2">Confirmer le mot de passe</label>
-                <input type="password" placeholder={t('profile.confirmNew', lang)} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+          {!isSso && (
+            <div className="border-t border-slate-200 pt-4 mt-4">
+              <h3 className="font-semibold text-slate-800 mb-4">Changer le mot de passe</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">Nouveau mot de passe (optionnel)</label>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder={t('profile.keepCurrent', lang)} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">Confirmer le mot de passe</label>
+                  <input type="password" placeholder={t('profile.confirmNew', lang)} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
           <div className="flex items-center space-x-2 mt-6 pt-4 border-t border-slate-200">
             <button onClick={saveProfile} disabled={savingProfile} className="px-4 py-2 bg-indigo-600 text-white font-medium rounded hover:bg-indigo-700 transition-colors disabled:opacity-50">{savingProfile ? 'Enregistrement...' : 'Enregistrer les modifications'}</button>
             <button onClick={() => setActiveView('settings')} className="px-4 py-2 bg-slate-200 text-slate-700 font-medium rounded hover:bg-slate-300 transition-colors">Annuler</button>

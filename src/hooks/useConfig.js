@@ -8,6 +8,7 @@ export const useConfig = () => {
     appSubtitle: APP_CONFIG.appSubtitle,
     language: APP_CONFIG.defaultLanguage || 'fr',
     defaultLanguage: APP_CONFIG.defaultLanguage || 'fr',
+    ssoAutoCreateUsers: false,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -42,15 +43,17 @@ export const useConfig = () => {
 
 
 
-  const handleSaveConfig = (e) => {
+  const handleSaveConfig = (e, overrideConfig) => {
     if (e && e.preventDefault) e.preventDefault();
     setIsSaving(true);
+
+    const payloadConfig = overrideConfig ? { ...config, ...overrideConfig } : config;
 
     // Persist to server endpoint
     fetch('http://127.0.0.1:3001/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config, supportedLanguages })
+      body: JSON.stringify({ config: payloadConfig, supportedLanguages })
     })
       .catch(() => {
         // ignore server errors

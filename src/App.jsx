@@ -2,7 +2,7 @@
 // Copyright (c) 2025 OurITRes
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Shield, BarChart2, Network, CheckCircle, Brain, Settings, ChevronRight, AlertTriangle, Users, Globe, Radar, Compass, LayoutDashboard, ScanEye, ScanSearch, Cable, ArrowDown, ArrowDownUp } from 'lucide-react';
+import { Shield, BarChart2, Network, CheckCircle, Brain, Settings, ChevronRight, AlertTriangle, Users, Globe, Radar, Compass, LayoutDashboard, ScanEye, ScanSearch, Cable, ArrowDown, ArrowDownUp, Upload } from 'lucide-react';
 
 import { useAppState, useRemediationActions, useConfig, useMLSimulation } from './hooks';
 import { t } from './i18n';
@@ -11,6 +11,8 @@ import './styles/App.css';
 
 import Login from './components/Login';
 import Register from './components/Register';
+import Callback from './pages/Callback';
+import { AWSStatusIndicator } from './components/AWSStatusIndicator';
 
 import DashboardPage from './pages/Dashboard';
 import RemediationPage from './pages/Remediation';
@@ -25,6 +27,7 @@ import RosettaPage from './pages/Rosetta';
 import AutomationPage from './pages/Automation';
 import UsersPage from './pages/Users';
 import LanguagesPage from './pages/Languages';
+import UploadPage from './pages/Upload';
 
 export default function AdSecurityOpsCenter() {
   const {
@@ -98,7 +101,7 @@ export default function AdSecurityOpsCenter() {
     if (activeView === 'connectors' || activeView === 'userspage') {
       loadUsers();
     }
-  }, [activeView]);
+  }, [activeView, loadUsers]);
 
   const getInitials = (fallbackName) => {
     const fn = (authenticatedUser && authenticatedUser.firstName) || (effectiveCurrentUser && effectiveCurrentUser.firstName) || '';
@@ -155,11 +158,43 @@ export default function AdSecurityOpsCenter() {
     authService,
   };
 
+  // Check if we're on the OAuth callback route
+  if (window.location.pathname === '/callback') {
+    return (
+      <Callback
+        onAuth={(result) => {
+          // Store user info from Cognito
+          setAuthenticatedUser({
+            id: result.user.sub,
+            email: result.user.email,
+            displayName: result.user.email.split('@')[0],
+            idToken: result.idToken,
+          });
+          setActiveView('dashboard');
+          // Replace the URL to remove callback params
+          window.history.replaceState({}, document.title, '/');
+        }}
+      />
+    );
+  }
+
   if (!authenticatedUser) {
     return (
       <Login
-        onAuth={(user) => {
-          setAuthenticatedUser(user);
+        onAuth={(result) => {
+          // Handle both local server and Cognito formats
+          if (result.user && result.user.sub) {
+            // Cognito format
+            setAuthenticatedUser({
+              id: result.user.sub,
+              email: result.user.email,
+              displayName: result.user.email.split('@')[0],
+              idToken: result.idToken,
+            });
+          } else {
+            // Local server format
+            setAuthenticatedUser(result);
+          }
           setActiveView('dashboard');
         }}
         appName={config.appName}
@@ -247,9 +282,39 @@ export default function AdSecurityOpsCenter() {
           ))}
 
           <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">{t('app.compliance', lang)}</p>
+          <button
+            onClick={() => setActiveView('compliance')}
+            className={`w-full flex items-center space-x-3 px-4 py-1.5 rounded-lg transition-all duration-200 group ${
+              activeView === 'compliance' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <Radar size={20} className={activeView === 'compliance' ? 'text-white' : 'text-slate-500 group-hover:text-white'} />
+            <span className="font-medium">{t('menu.compliance', lang)}</span>
+          </button>
+          
+          {/* PingCastle avec Upload XML en sous-élément */}
+          <button
+            onClick={() => setActiveView('pingcastle')}
+            className={`w-full flex items-center space-x-3 px-4 py-1.5 rounded-lg transition-all duration-200 group ${
+              activeView === 'pingcastle' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <ScanSearch size={20} className={activeView === 'pingcastle' ? 'text-white' : 'text-slate-500 group-hover:text-white'} />
+            <span className="font-medium">{t('menu.pingcastle', lang)}</span>
+          </button>
+          
+          {/* Upload XML sous PingCastle - affichage plus petit */}
+          <button
+            onClick={() => setActiveView('upload')}
+            className={`w-full flex items-center space-x-2 pl-11 pr-3 py-1 rounded-lg transition-all duration-200 group ${
+              activeView === 'upload' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <Upload size={16} className={activeView === 'upload' ? 'text-white' : 'text-slate-500 group-hover:text-white'} />
+            <span className="text-sm">Upload XML</span>
+          </button>
+          
           {[
-            { id: 'compliance', icon: Radar, label: t('menu.compliance', lang) },
-            { id: 'pingcastle', icon: ScanSearch , label: t('menu.pingcastle', lang) },
             { id: 'bloodhound', icon: ScanEye, label: t('menu.bloodhound', lang) },
             { id: 'rosetta', icon: Compass, label: t('menu.rosetta', lang) },
           ].map((item) => (
@@ -365,6 +430,7 @@ export default function AdSecurityOpsCenter() {
               <ChevronRight size={14} />
               <span className="text-slate-800 font-medium capitalize">
                 {activeView === 'ml' ? t('breadcrumb.ml', lang)
+                : activeView === 'upload' ? 'Upload XML'
                 : activeView === 'connectors' ? t('breadcrumb.connectors', lang)
                 : activeView === 'compliance' ? t('breadcrumb.compliance', lang)
                 : activeView === 'pingcastle' ? t('breadcrumb.pingcastle', lang)
@@ -379,6 +445,7 @@ export default function AdSecurityOpsCenter() {
             </div>
             <h2 className="text-xl font-bold text-slate-800">
               {activeView === 'dashboard' && t('pageTitle.dashboard', lang)}
+              {activeView === 'upload' && 'Upload PingCastle XML'}
               {activeView === 'details' && t('pageTitle.details', lang)}
               {activeView === 'ml' && t('pageTitle.ml', lang)}
               {activeView === 'remediation' && t('pageTitle.remediation', lang)}
@@ -395,6 +462,7 @@ export default function AdSecurityOpsCenter() {
           </div>
 
           <div className="flex items-center space-x-4">
+            <AWSStatusIndicator config={config} />
             <div className="hidden md:flex items-center px-3 py-1.5 bg-slate-100 rounded-lg text-sm font-medium text-slate-600 border border-slate-200">
               <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
               PingCastle: {t('app.syncedAgo', lang)}
@@ -407,6 +475,7 @@ export default function AdSecurityOpsCenter() {
         </header>
 
         {activeView === 'dashboard' && <DashboardPage ctx={ctx} />}
+        {activeView === 'upload' && <UploadPage ctx={ctx} />}
         {activeView === 'details' && <DetailsPage ctx={ctx} />}
         {activeView === 'remediation' && <RemediationPage ctx={ctx} />}
         {activeView === 'ml' && <MLPage ctx={ctx} />}

@@ -1,0 +1,34 @@
+{
+  "uploads": [
+    {
+      "id": 1766157117622,
+      "filename": "ad_hc_labad.local.xml",
+      "s3Key": "raw/pingcastle/scan/date=2025-12-19/1766157117622-ad_hc_labad.local.xml",
+      "bucket": "adcyberwatch-poc-rawbucket-5nhz0ruxom7k",
+      "uploadedAt": "2025-12-19T15:11:58.000Z",
+      "status": "uploaded",
+      "source": "pingcastle",
+      "uploadCompletedAt": "2025-12-19T15:11:58.000Z"
+    },
+    {
+      "id": 1734552134000,
+      "filename": "04b628b2-03ff-42da-bdc8-1205f79e99a9.xml",
+      "s3Key": "raw/pingcastle/scan/date=2025-12-18/04b628b2-03ff-42da-bdc8-1205f79e99a9.xml",
+      "bucket": "adcyberwatch-poc-rawbucket-5nhz0ruxom7k",
+      "uploadedAt": "2025-12-18T20:45:54.000Z",
+      "status": "uploaded",
+      "source": "pingcastle",
+      "uploadCompletedAt": "2025-12-18T20:45:54.000Z"
+    },
+    {
+      "id": 1734551929000,
+      "filename": "c3bbbb7a-52ed-4bbc-af7c-127d282b288c.xml",
+      "s3Key": "raw/pingcastle/scan/date=2025-12-18/c3bbbb7a-52ed-4bbc-af7c-127d282b288c.xml",
+      "bucket": "adcyberwatch-poc-rawbucket-5nhz0ruxom7k",
+      "uploadedAt": "2025-12-18T20:42:09.000Z",
+      "status": "uploaded",
+      "source": "pingcastle",
+      "uploadCompletedAt": "2025-12-18T20:42:09.000Z"
+    }
+  ]
+}

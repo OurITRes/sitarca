@@ -13,26 +13,14 @@ export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI
   const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
-    // quick reachability check to determine if backend is reachable
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await authService.getUsers();
-        if (!mounted) return;
-        const list = Array.isArray(res) ? res : ((res && res.users) || []);
-        setFallback(list.length === 0);
-      } catch {
-        if (!mounted) return;
-        setFallback(true);
-      }
-    })();
-    return () => { mounted = false; };
+    // Skip backend reachability check - we're using Cognito directly
+    setFallback(false);
   }, []);
 
   const isValidId = (v) => {
     if (!v) return false;
-    // Accept email-like (user@domain) or UPN with backslash (DOMAIN\\user)
-    return v.includes('@') || v.indexOf('\\') !== -1;
+    // Accept email-like (user@domain), UPN with backslash (DOMAIN\\user), or simple username
+    return v.length > 0;
   };
 
   const handleLocalLogin = async () => {
@@ -40,6 +28,7 @@ export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI
     if (!isValidId(id) || !password) return setError('Entrez un email/UPN valide et un mot de passe');
     setLoading(true);
     try {
+      // Use local server authentication
       const res = await authService.login(id, password);
       onAuth(res);
     } catch (e) {

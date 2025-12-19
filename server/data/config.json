@@ -5,10 +5,26 @@
     "appSubtitle": "AD Defense Platform",
     "language": "fr",
     "defaultLanguage": "fr",
+    "ssoAutoCreateUsers": true,
+    "ssoProvider": "cognito",
+    "ssoProtocol": "oidc",
+    "ssoClientId": "3vlaq9e4let52nkjudiid9qrv0",
+    "ssoClientSecret": "",
+    "ssoTenantId": "",
+    "ssoDiscoveryUrl": "",
+    "ssoRedirectUri": "http://localhost:5173/callback",
+    "ssoMetadataUrl": "",
+    "ssoCognitoDomain": "poc-cyberwatch-ai",
     "bhUrl": "https://bloodhound.corp.internal",
     "bhToken": "********************",
     "pcReportPath": "C:\\Reports\\PingCastle\\",
     "pcCatalogPath": "C:\\PingCastle\\Rules\\Catalog.xml",
+    "awsStackName": "adcyberwatch-poc",
+    "awsRegion": "ca-central-1",
+    "awsS3BucketRaw": "adcyberwatch-poc-rawbucket-5nhz0ruxom7k",
+    "awsS3BucketCurated": "adcyberwatch-poc-curatedbucket-hztlocc9oynh",
+    "awsS3BucketFrameworks": "adcyberwatch-poc-frameworksbucket-sxe9wjpp6e7g",
+    "awsLambdaFunction": "adcyberwatch-ingest",
     "jiraUrl": "https://jira.company.com",
     "jiraUser": "svc_cyberwatch",
     "jiraToken": "********************",
@@ -22,12 +38,9 @@
     "appRoles": [
       "admin",
       "analyst",
-      "viewer"
-    ],
-    "ssoProvider": "azuread",
-    "ssoClientId": "",
-    "ssoTenantId": "",
-    "ssoRedirectUri": ""
+      "viewer",
+      "operator"
+    ]
   },
   "supportedLanguages": [
     "en",

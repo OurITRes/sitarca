@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
+import { AWSStatusIndicator } from './AWSStatusIndicator';
 
-export const NavigationHeader = ({ activeView }) => (
+export const NavigationHeader = ({ activeView, config }) => (
   <header className="mb-8 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-4 z-10">
     <div>
       <div className="flex items-center space-x-2 text-slate-400 text-sm mb-1">
@@ -19,6 +20,9 @@ export const NavigationHeader = ({ activeView }) => (
          {activeView === 'remediation' && 'Plan d\'Amélioration Continue'}
          {activeView === 'settings' && 'Connecteurs'}
       </h2>
+    </div>
+    <div className="flex items-center space-x-4">
+      <AWSStatusIndicator config={config} />
     </div>
   </header>
 );
