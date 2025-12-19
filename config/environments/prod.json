@@ -1,0 +1,7 @@
+{
+  "Parameters": {
+    "Environment": "prod",
+    "CognitoHostedUIDomain": "cyberwatch-ai",
+    "RedirectUri": "https://cyberwatch-ai.example.com/callback"
+  }
+}

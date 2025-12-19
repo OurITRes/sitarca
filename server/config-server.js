@@ -961,6 +961,238 @@ app.delete('/uploads', async (req, res) => {
   }
 });
 
+// Get weaknesses/findings from DynamoDB (DEPRECATED - kept for backwards compatibility)
+// This endpoint is overridden by the one at line 1099
+app.get('/weaknesses-old', async (req, res) => {
+  try {
+    const config = readConfig();
+    const region = config.awsRegion || 'ca-central-1';
+    const tableName = 'adcyberwatch-main'; // From CloudFormation output
+    
+    // Initialize DynamoDB client
+    const dynamoClient = new DynamoDBClient({ region });
+    const docClient = DynamoDBDocumentClient.from(dynamoClient);
+    
+    // Scan for all evidence items (sk starts with EVID#)
+    const scanCmd = new ScanCommand({
+      TableName: tableName,
+      FilterExpression: 'begins_with(sk, :evid)',
+      ExpressionAttributeValues: {
+        ':evid': 'EVID#'
+      }
+    });
+    
+    const result = await docClient.send(scanCmd);
+    const items = result.Items || [];
+    
+    // Group evidence by weakness_id (pk) to create findings
+    const findingsMap = new Map();
+    
+    items.forEach(item => {
+      const weaknessId = item.pk; // pk is the weakness ID (e.g., WEAK#A-Krbtgt)
+      
+      if (!findingsMap.has(weaknessId)) {
+        findingsMap.set(weaknessId, {
+          id: weaknessId,
+          riskId: item.weakness_id || weaknessId.replace('WEAK#', ''),
+          title: item.title || item.weakness_title || 'Unknown weakness',
+          category: item.category || 'Unknown',
+          severity: item.severity || item.risk_level || 'MEDIUM',
+          points: item.points || item.score || 0,
+          description: item.description || item.weakness_description || 'No description available',
+          frameworks: item.frameworks || [],
+          mapped: item.mapped || (item.weakness_id && item.weakness_id !== 'UNKNOWN'),
+          evidenceCount: 0,
+          uploadedAt: item.uploadedAt || item.timestamp,
+          filename: item.filename || item.source_file,
+          s3Key: item.s3Key
+        });
+      }
+      
+      // Increment evidence count
+      const finding = findingsMap.get(weaknessId);
+      finding.evidenceCount++;
+    });
+    
+    // Convert map to array and sort by severity and points
+    const findings = Array.from(findingsMap.values());
+    
+    // Sort: CRITICAL > HIGH > MEDIUM > LOW, then by points descending
+    const severityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    findings.sort((a, b) => {
+      const severityDiff = (severityOrder[a.severity] || 99) - (severityOrder[b.severity] || 99);
+      if (severityDiff !== 0) return severityDiff;
+      return (b.points || 0) - (a.points || 0);
+    });
+    
+    res.send(findings);
+  } catch (error) {
+    console.error('Error reading weaknesses from DynamoDB:', error);
+    res.status(500).send({ error: 'Failed to read weaknesses', message: error.message });
+  }
+});
+
+// Get PingCastle rules from XML file
+app.get('/pingcastle/rules', async (req, res) => {
+  try {
+    const rulesFile = path.join(DATA_DIR, 'PingCastleRules.xml');
+    
+    if (!fs.existsSync(rulesFile)) {
+      return res.status(404).send({ error: 'PingCastle rules file not found' });
+    }
+    
+    const xmlContent = fs.readFileSync(rulesFile, 'utf8');
+    
+    // Parse XML manually (simple regex-based parsing for this specific structure)
+    const ruleMatches = xmlContent.matchAll(/<ExportedRule>([\s\S]*?)<\/ExportedRule>/g);
+    const rules = [];
+    
+    for (const match of ruleMatches) {
+      const ruleXml = match[1];
+      
+      // Extract fields using regex
+      const getField = (fieldName) => {
+        const regex = new RegExp(`<${fieldName}>(.*?)<\/${fieldName}>`, 's');
+        const m = ruleXml.match(regex);
+        return m ? m[1].trim() : '';
+      };
+      
+      const rule = {
+        id: getField('RiskId'),
+        title: getField('Title'),
+        category: getField('Category'),
+        type: getField('Type'),
+        description: getField('Description'),
+        technicalExplanation: getField('TechnicalExplanation'),
+        solution: getField('Solution'),
+        documentation: getField('Documentation'),
+        maturityLevel: parseInt(getField('MaturityLevel')) || 1,
+        model: getField('Model'),
+      };
+      
+      // Extract MITRE ATT&CK references from documentation
+      const mitreRegex = /\[MITRE\](T\d{4}(?:\.\d{3})?)/g;
+      const mitreMatches = [...(rule.documentation || '').matchAll(mitreRegex)];
+      rule.frameworks = mitreMatches.map(m => `MITRE:${m[1]}`);
+      
+      // Determine severity based on maturity level and category
+      if (rule.category === 'Anomalies' || rule.maturityLevel <= 2) {
+        rule.severity = 'CRITICAL';
+      } else if (rule.maturityLevel === 3 || rule.category === 'PrivilegedAccounts') {
+        rule.severity = 'HIGH';
+      } else if (rule.maturityLevel === 4) {
+        rule.severity = 'MEDIUM';
+      } else {
+        rule.severity = 'LOW';
+      }
+      
+      rules.push(rule);
+    }
+    
+    res.send({ rules, count: rules.length });
+  } catch (error) {
+    console.error('Error reading PingCastle rules:', error);
+    res.status(500).send({ error: 'Failed to read PingCastle rules', message: error.message });
+  }
+});
+
+// Get all weaknesses with their evidence and rules
+// Composite key format: WEAK#{riskId}#{domain}#{date}
+app.get('/weaknesses', async (req, res) => {
+  try {
+    const config = readConfig();
+    const region = config.awsRegion || 'ca-central-1';
+    const tableName = 'adcyberwatch-main';
+    
+    const dynamoClient = new DynamoDBClient({ region });
+    const docClient = DynamoDBDocumentClient.from(dynamoClient);
+    
+    // Scan all WEAK items
+    const scanCmd = new ScanCommand({
+      TableName: tableName,
+      FilterExpression: 'begins_with(pk, :prefix)',
+      ExpressionAttributeValues: {
+        ':prefix': 'WEAK'
+      }
+    });
+    
+    const result = await docClient.send(scanCmd);
+    const items = result.Items || [];
+    
+    // Get PingCastle rules
+    const rulesResponse = await fetch('http://localhost:3001/pingcastle/rules');
+    const rulesData = await rulesResponse.json();
+    const rulesMap = new Map(rulesData.rules.map(r => [r.id, r]));
+    
+    // Group items by weakness (pk)
+    // New format: pk = WEAK#{riskId}#{domain}#{date}
+    const weaknesses = {};
+    items.forEach(item => {
+      const pk = item.pk;
+      if (!weaknesses[pk]) {
+        weaknesses[pk] = {
+          riskId: null,
+          title: null,
+          category: null,
+          model: null,
+          severity: null,
+          description: null,
+          evidence: [],
+          meta: null,
+          domain: null,
+          date: null
+        };
+      }
+      
+      if (item.sk === 'META') {
+        // Meta record
+        weaknesses[pk].riskId = item.riskId;
+        weaknesses[pk].category = item.category;
+        weaknesses[pk].model = item.model;
+        weaknesses[pk].meta = item;
+        weaknesses[pk].domain = item.domain;
+        weaknesses[pk].date = item.date;
+        
+        // Get rule details
+        const rule = rulesMap.get(item.riskId);
+        if (rule) {
+          weaknesses[pk].title = rule.title;
+          weaknesses[pk].description = rule.description;
+          weaknesses[pk].severity = rule.severity;
+        }
+      } else if (item.sk && item.sk.startsWith('EVID#')) {
+        // Evidence record
+        weaknesses[pk].evidence.push({
+          evidenceId: item.evidenceId,
+          rationale: item.rationale,
+          points: item.points,
+          timestamp: item.timestamp,
+          source: item.source,
+          details: item.details,
+          s3Key: item.s3Key
+        });
+      }
+    });
+    
+    // Convert to array and sort by points (descending)
+    const weaknessArray = Object.values(weaknesses)
+      .filter(w => w.riskId) // Only include complete weaknesses
+      .sort((a, b) => {
+        const aPoints = Math.max(...a.evidence.map(e => parseInt(e.points) || 0), 0);
+        const bPoints = Math.max(...b.evidence.map(e => parseInt(e.points) || 0), 0);
+        return bPoints - aPoints;
+      });
+    
+    res.send({
+      count: weaknessArray.length,
+      weaknesses: weaknessArray
+    });
+  } catch (error) {
+    console.error('Error fetching weaknesses:', error);
+    res.status(500).send({ error: 'Failed to fetch weaknesses', message: error.message });
+  }
+});
+
 
 
 

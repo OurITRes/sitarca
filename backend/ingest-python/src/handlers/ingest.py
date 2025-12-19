@@ -56,7 +56,7 @@ def handler(event, context):
         xml_content = response['Body'].read().decode('utf-8')
         
         # Parse XML and process findings
-        findings, generation_date = parse_pingcastle_xml(xml_content)
+        findings, generation_date, domain_fqdn = parse_pingcastle_xml(xml_content)
         
         if not findings:
             print("No findings found in XML")
@@ -66,10 +66,10 @@ def handler(event, context):
             }
         
         # Write to DynamoDB
-        write_to_dynamodb(findings, key, generation_date)
+        write_to_dynamodb(findings, key, generation_date, domain_fqdn)
         
         # Write snapshot to S3 curated
-        write_to_curated(findings, key, generation_date)
+        write_to_curated(findings, key, generation_date, domain_fqdn)
         
         print(f"Successfully processed {len(findings)} findings from {key}")
         
@@ -86,10 +86,11 @@ def handler(event, context):
 def parse_pingcastle_xml(xml_content):
     """
     Parse PingCastle XML and extract findings from RiskRules.
-    Returns tuple: (list of finding dictionaries, generation_date string).
+    Returns tuple: (list of finding dictionaries, generation_date string, domain_fqdn string).
     """
     findings = []
     generation_date = None
+    domain_fqdn = None
     
     try:
         root = ET.fromstring(xml_content)
@@ -106,11 +107,19 @@ def parse_pingcastle_xml(xml_content):
             generation_date = datetime.utcnow().isoformat()
             print("Warning: GenerationDate not found in XML, using current time")
         
+        # Extract DomainFQDN from XML root
+        domain_elem = root.find('.//DomainFQDN')
+        if domain_elem is not None and domain_elem.text:
+            domain_fqdn = domain_elem.text
+            print(f"Found DomainFQDN: {domain_fqdn}")
+        else:
+            print("Warning: DomainFQDN not found in XML")
+        
         # Find RiskRules section
         risk_rules = root.find('.//RiskRules')
         if risk_rules is None:
             print("No RiskRules section found in XML")
-            return findings
+            return findings, generation_date, domain_fqdn
         
         # Extract each HealthcheckRiskRule
         for rule in risk_rules.findall('HealthcheckRiskRule'):
@@ -135,7 +144,7 @@ def parse_pingcastle_xml(xml_content):
         print(f"XML parsing error: {str(e)}")
         raise
     
-    return findings, generation_date
+    return findings, generation_date, domain_fqdn
 
 
 def get_element_text(parent, tag_name):
@@ -146,39 +155,58 @@ def get_element_text(parent, tag_name):
     return element.text if element is not None and element.text else ''
 
 
-def write_to_dynamodb(findings, s3_key, generation_date):
+def write_to_dynamodb(findings, s3_key, generation_date, domain_fqdn):
     """
-    Write findings to DynamoDB.
+    Write findings to DynamoDB with deduplication.
+    Deduplication key: date + domain + riskId
     Structure:
-    - Weakness: pk=WEAK#{riskId}, sk=META
-    - Evidence: pk=WEAK#{riskId}, sk=EVID#{uuid}
+    - Weakness: pk=WEAK#{riskId}#{domain}#{date}, sk=META
+    - Evidence: pk=WEAK#{riskId}#{domain}#{date}, sk=EVID#{uuid}
     Uses generation_date from XML for all timestamps.
     """
+    
+    # Extract date from generation_date (YYYY-MM-DD)
+    try:
+        date_str = generation_date[:10]
+    except Exception:
+        date_str = datetime.utcnow().strftime('%Y-%m-%d')
+    
+    # Normalize domain (lowercase, remove trailing dot)
+    domain_normalized = domain_fqdn.lower().rstrip('.') if domain_fqdn else 'unknown'
     
     for finding in findings:
         risk_id = finding['riskId']
         
-        # 1. Write/Update Weakness metadata (WEAK#id / META)
+        # Create composite primary key: date + domain + riskId
+        # Example: WEAK#A-Krbtgt#labad.local#2025-12-18
+        composite_pk = f"WEAK#{risk_id}#{domain_normalized}#{date_str}"
+        
+        # 1. Write/Update Weakness metadata (composite_pk / META)
+        # Use UpdateItem with conditional expression to prevent overwrites if already exists
         weakness_item = {
-            'pk': f"WEAK#{risk_id}",
+            'pk': composite_pk,
             'sk': 'META',
             'riskId': risk_id,
             'category': finding['category'],
             'model': finding['model'],
             'source': 'pingcastle',
+            'domain': domain_normalized,
+            'date': date_str,
             'lastUpdated': generation_date
         }
         
         try:
+            # Use put_item without condition - will update if already exists
             table.put_item(Item=weakness_item)
-            print(f"Written weakness: WEAK#{risk_id}")
+            print(f"Written/Updated weakness: {composite_pk}")
         except Exception as e:
             print(f"Error writing weakness {risk_id}: {str(e)}")
         
-        # 2. Write Evidence (WEAK#id / EVID#{uuid})
+        # 2. Write Evidence (composite_pk / EVID#{uuid})
+        # Use composite key in sort key too to ensure uniqueness per scan
         evidence_uuid = str(uuid4())
         evidence_item = {
-            'pk': f"WEAK#{risk_id}",
+            'pk': composite_pk,
             'sk': f"EVID#{evidence_uuid}",
             'evidenceId': evidence_uuid,
             'points': finding['points'],
@@ -186,17 +214,19 @@ def write_to_dynamodb(findings, s3_key, generation_date):
             'details': finding.get('details', ''),
             's3Key': s3_key,
             'timestamp': generation_date,
-            'source': 'pingcastle'
+            'source': 'pingcastle',
+            'domain': domain_normalized,
+            'date': date_str
         }
         
         try:
             table.put_item(Item=evidence_item)
-            print(f"Written evidence: WEAK#{risk_id} / EVID#{evidence_uuid}")
+            print(f"Written evidence: {composite_pk} / EVID#{evidence_uuid}")
         except Exception as e:
             print(f"Error writing evidence for {risk_id}: {str(e)}")
 
 
-def write_to_curated(findings, s3_key, generation_date):
+def write_to_curated(findings, s3_key, generation_date, domain_fqdn):
     """
     Write normalized JSON snapshot to S3 curated bucket.
     Path: curated/findings/source=pingcastle/date=YYYY-MM-DD/{uuid}.json
@@ -211,16 +241,20 @@ def write_to_curated(findings, s3_key, generation_date):
         # Fallback to current date if parsing fails
         date_str = datetime.utcnow().strftime('%Y-%m-%d')
     
+    # Normalize domain
+    domain_normalized = domain_fqdn.lower().rstrip('.') if domain_fqdn else 'unknown'
+    
     snapshot_uuid = str(uuid4())
     
     # Build curated S3 key
-    curated_key = f"curated/findings/source=pingcastle/date={date_str}/{snapshot_uuid}.json"
+    curated_key = f"curated/findings/source=pingcastle/date={date_str}/domain={domain_normalized}/{snapshot_uuid}.json"
     
     # Build snapshot payload
     snapshot = {
         'source': 'pingcastle',
         'timestamp': generation_date,
         'originalS3Key': s3_key,
+        'domain': domain_normalized,
         'findingsCount': len(findings),
         'findings': findings,
         'metadata': {

@@ -50,17 +50,13 @@ utilisateurs.
 - Preview du build : `npm run preview`
 - Lint : `npm run lint`
 
-### Structure rapide
+### Structure rapide (UI isolée)
 
-- `src/App.jsx` : Shell principal (auth, navigation, injection du contexte
-  partagé).
-- `src/pages/*` : Vues isolées (Dashboard, Details, Remediation, ML,
-  Settings, Profile).
-- `src/services/auth.js` : appels API auth et utilisateurs vers le serveur
-  Express.
-- `server/config-server.js` : API locale (config + utilisateurs) avec
-  persistance fichier.
-- `scripts/dev-both.js` : lance Vite et le serveur config en parallèle.
+- Voir la section détaillée « Structure du projet » ci‑dessous.
+- `ui/` contient tout le frontend (React/Vite) isolé.
+- `server/` contient l’API locale et les données côté serveur.
+- `backend/` contient les fonctions Lambda (API et ingestion).
+- `infra/` contient l’infrastructure (SAM/CloudFormation, tests, événements).
 
 ### Authentification et données
 
@@ -87,3 +83,68 @@ This project is licensed under the GNU Affero General Public License v3.0
 If you run a modified version of this software as a network service, you must
 offer the corresponding source code to users interacting with it over the
 network (AGPLv3).
+
+---
+
+## Structure du projet (actualisée)
+
+```text
+ad-cyberwatch.ai/
+├── ui/                         # 📱 UI LAYER (frontend isolé)
+│   ├── src/                    # composants React, pages, services
+│   ├── public/                 # assets statiques
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── package.json            # dépendances UI
+│   └── (tailwind, postcss, eslint, etc.)
+│
+├── server/                     # 💾 API locale & données (dev)
+│   ├── config-server.js        # serveur Express local
+│   ├── oidc-provider.js        # fournisseur OIDC de dev
+│   └── data/                   # 🔒 données côté serveur (non exposées)
+│       ├── users.json          # comptes locaux
+│       ├── uploads.json        # métadonnées d’upload
+│       ├── config.json         # configuration runtime
+│       └── *.xml               # fichiers PingCastle/BloodHound
+│
+├── backend/                    # ⚡ Fonctions Lambda (AWS)
+│   ├── api-node/               # API (Node.js) → /health, /me, /uploads/presign
+│   └── ingest-python/          # Ingestion (Python) → parse XML → DynamoDB
+│
+├── infra/                      # 🏗️ Infra as Code (SAM/CloudFormation)
+│   ├── template.yaml           # ressources (S3, DynamoDB, Cognito, API, Lambda)
+│   ├── __tests__/              # tests d’infrastructure
+│   └── events/                 # événements de test pour Lambda
+│
+├── config/                     # ⚙️ Environnements & Sécurité
+│   ├── environments/           # dev/staging/prod (.json)
+│   └── security/               # IAM policies, CORS, Auth
+│
+├── docs/                       # 📚 documentation
+├── scripts/                    # 🛠️ outils (ex: dev-both.js)
+└── archivesNotUsed/            # 🗄️ archives (ignorées par git)
+```
+
+### Segregation logique
+
+- **UI (ui/):** application SPA React, déployée sur S3/CloudFront.
+- **API (backend/api-node):** endpoints backend (presign, me, health).
+- **Data processing (backend/ingest-python):** ingestion de scans et insertion DynamoDB.
+- **Données serveur (server/data):** utilisateurs/config/fichiers XML,
+  jamais exposés directement au client.
+- **Infra (infra/):** définition des ressources AWS (S3 raw/curated,
+  DynamoDB pk/sk, Cognito, API Gateway/HTTP API, EventBridge, Lambda).
+- **Environnements (config/environments):** variables par environnement (dev/staging/prod).
+- **Sécurité (config/security):** politiques IAM minimales, CORS, paramètres Cognito.
+
+### Scripts & commandes
+
+- Lancer UI + serveur local: `npm run dev:both`
+- Lancer uniquement l’UI: `npm run dev` (dans ui)
+- Build UI: `npm run build` (dans ui)
+
+### Bonnes pratiques sécurité
+
+- Ne jamais mettre de secrets dans les variables `VITE_*` (visibles côté client).
+- Utiliser AWS Secrets Manager / Parameter Store pour les secrets en prod.
+- Appliquer le principe du moindre privilège sur les IAM policies.

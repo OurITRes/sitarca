@@ -7,10 +7,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Build outputs
 node_modules
 dist
 dist-ssr
 *.local
+
+# UI build artifacts
+ui/dist
+ui/node_modules
 
 # Editor directories and files
 .venv/*
@@ -26,10 +31,22 @@ dist-ssr
 
 # Unused files
 unused/
+archivesNotUsed/
+
 # Environment variables (NEVER commit real values)
 .env
 .env.local
 .env.*.local
+ui/.env
+ui/.env.local
+ui/.env.*.local
+config/environments/*.local.json
+config/.env
+
+# Security - sensitive configs (use AWS Secrets Manager in production)
+config/security/*.local.json
+server/data/users.json
+server/data/*.local.json
 
 # XML exports (PingCastle, BloodHound, etc.)
 *.xml

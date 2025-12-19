@@ -1,0 +1,37 @@
+{
+  "Cognito": {
+    "TokenRefreshThreshold": 300,
+    "SessionTimeout": 3600,
+    "PasswordPolicy": {
+      "MinimumLength": 12,
+      "RequireUppercase": true,
+      "RequireLowercase": true,
+      "RequireNumbers": true,
+      "RequireSymbols": true,
+      "TemporaryPasswordValidityDays": 7
+    },
+    "MfaConfiguration": "OPTIONAL",
+    "AccountRecoverySetting": {
+      "RecoveryMechanisms": [
+        {
+          "Priority": 1,
+          "Name": "verified_email"
+        }
+      ]
+    }
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:5173",
+      "http://localhost:3001",
+      "https://cyberwatch-ai.example.com"
+    ],
+    "AllowedMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "AllowedHeaders": ["Content-Type", "Authorization", "X-Requested-With"],
+    "MaxAge": 3600
+  },
+  "RateLimiting": {
+    "RequestsPerMinute": 100,
+    "BurstSize": 200
+  }
+}

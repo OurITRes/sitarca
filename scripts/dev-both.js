@@ -18,7 +18,7 @@ function start(name, cmd, args) {
   return p;
 }
 
-const vite = start('vite', 'npm', ['run', 'dev']);
+const vite = start('vite', 'npm', ['--prefix', 'ui', 'run', 'dev']);
 const server = start('server', 'node', ['server/config-server.js']);
 
 process.on('SIGINT', () => { vite.kill(); server.kill(); process.exit(); });

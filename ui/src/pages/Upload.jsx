@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload as UploadIcon, CheckCircle, AlertCircle, FileText, Clock, Database, Trash2 } from 'lucide-react';
-import { uploadFile, getUploads, deleteUpload, isLocalUser } from '../services/auth';
+import { uploadFile, getUploads, deleteUpload } from '../services/auth';
 
 export default function Upload() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -12,7 +12,6 @@ export default function Upload() {
   const [deleting, setDeleting] = useState(null);
   const [lastSync, setLastSync] = useState(null);
   const [postUploadRetries, setPostUploadRetries] = useState(0);
-  const isAdmin = isLocalUser(); // For now, local users are admins
 
   // Fetch uploads from API
   const fetchUploads = async () => {
@@ -217,20 +216,18 @@ export default function Upload() {
                            upload.status === 'uploaded' ? 'Uploadé' :
                            upload.status === 'uploading' ? 'Upload...' : 'En cours'}
                         </span>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(upload.s3Key, upload.filename)}
-                            disabled={deleting === upload.s3Key}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Supprimer ce fichier"
-                          >
-                            {deleting === upload.s3Key ? (
-                              <Clock size={16} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={16} />
-                            )}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleDelete(upload.s3Key, upload.filename)}
+                          disabled={deleting === upload.s3Key}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Supprimer ce fichier"
+                        >
+                          {deleting === upload.s3Key ? (
+                            <Clock size={16} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

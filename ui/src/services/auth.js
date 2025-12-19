@@ -400,7 +400,10 @@ export async function getMe() {
 
 export async function getWeaknesses() {
   try {
-    const response = await fetchWithAuth(`${API_BASE}/weaknesses`);
+    // Always use local server for weaknesses (both local and SSO users)
+    const localAPI = 'http://127.0.0.1:3001';
+    
+    const response = await fetch(`${localAPI}/weaknesses`);
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.error || 'Failed to get weaknesses');
@@ -408,6 +411,23 @@ export async function getWeaknesses() {
     return await response.json();
   } catch (error) {
     console.error('Get weaknesses error:', error);
+    throw error;
+  }
+}
+
+export async function getPingCastleRules() {
+  try {
+    // Always use local server for PingCastle rules
+    const localAPI = 'http://127.0.0.1:3001';
+    
+    const response = await fetch(`${localAPI}/pingcastle/rules`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to get PingCastle rules');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Get PingCastle rules error:', error);
     throw error;
   }
 }

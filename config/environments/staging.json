@@ -1,0 +1,7 @@
+{
+  "Parameters": {
+    "Environment": "staging",
+    "CognitoHostedUIDomain": "staging-cyberwatch-ai",
+    "RedirectUri": "https://staging.cyberwatch-ai.example.com/callback"
+  }
+}
