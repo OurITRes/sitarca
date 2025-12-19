@@ -303,7 +303,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-ingest"
-      Runtime: python3.14
+      Runtime: python3.12
       Architectures: [x86_64]
       Handler: src/handlers/ingest.handler
       CodeUri: ../backend/ingest-python/

@@ -69,3 +69,10 @@ server/data/*.local.json
 *.tmp
 *.bak
 *.swp
+
+# AWS SAM build artifacts
+/infra/.aws-sam/
+
+# SAM guided config (user-specific)
+# (optionnel mais recommandé en open-source)
+/infra/samconfig.toml
