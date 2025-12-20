@@ -35,6 +35,12 @@ if (-not $apiUrl)   { throw "Missing Output HttpApiUrl" }
 if (-not $userPoolId) { throw "Missing Output UserPoolId" }
 if (-not $clientId) { throw "Missing Output UserPoolClientId" }
 
+$cognitoPrefix = Get-Out $outs "CognitoDomainPrefix"
+if (-not $cognitoPrefix) { throw "Missing Output CognitoDomainPrefix" }
+
+#$cognitoDomainFqdn = "$cognitoPrefix.auth.$Region.amazoncognito.com"
+$cognitoDomainFqdn = $cognitoPrefix
+
 Write-Host "UI Bucket: $uiBucket"
 Write-Host "UI URL:    $uiUrl"
 Write-Host "API URL:   $apiUrl"
@@ -46,7 +52,9 @@ VITE_API_URL=$apiUrl
 VITE_COGNITO_REGION=$Region
 VITE_COGNITO_USER_POOL_ID=$userPoolId
 VITE_COGNITO_CLIENT_ID=$clientId
+VITE_COGNITO_DOMAIN=$cognitoDomainFqdn
 VITE_COGNITO_REDIRECT_URI=$uiUrl/callback
+VITE_COGNITO_LOGOUT_URI=$uiUrl
 VITE_COGNITO_IDENTITY_POOL_ID=$identityPoolId
 "@ | Out-File -Encoding utf8 $envPath
 
