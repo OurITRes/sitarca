@@ -71,6 +71,7 @@ server/data/*.local.json
 *.swp
 
 # AWS SAM build artifacts
+.aws-sam/
 /infra/.aws-sam/
 
 # SAM guided config (user-specific)
