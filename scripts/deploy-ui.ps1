@@ -60,8 +60,17 @@ Write-Host "Building UI..."
 npm --prefix ui run build
 
 # --- Deploy to S3 ---
-Write-Host "Syncing ui/dist -> s3://$uiBucket ..."
-aws s3 sync "ui/dist" "s3://$uiBucket" --delete --region $Region
+$distPathA = "ui/dist"
+$distPathB = "dist"
+
+$distPath = $null
+if (Test-Path $distPathA) { $distPath = $distPathA }
+elseif (Test-Path $distPathB) { $distPath = $distPathB }
+else { throw "Build output not found. Expected '$distPathA' or '$distPathB'." }
+
+Write-Host "Syncing $distPath -> s3://$uiBucket ..."
+aws s3 sync $distPath "s3://$uiBucket" --delete --region $Region
+
 
 # --- CloudFront invalidate ---
 Write-Host "Invalidating CloudFront distribution $distId ..."
