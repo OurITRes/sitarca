@@ -24,7 +24,7 @@
     "clsx": "^2.1.1",
     "express": "^5.2.1",
     "express-session": "^1.18.1",
-    "lucide-react": "^0.561.0",
+    "lucide-react": "^0.562.0",
     "openid-client": "^5.7.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
