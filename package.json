@@ -19,7 +19,7 @@
     "@aws-sdk/client-s3": "^3.398.0",
     "@aws-sdk/client-sts": "^3.955.0",
     "@aws-sdk/lib-dynamodb": "^3.955.0",
-    "@aws-sdk/s3-request-presigner": "^3.398.0",
+    "@aws-sdk/s3-request-presigner": "^3.956.0",
     "amazon-cognito-identity-js": "^6.3.16",
     "clsx": "^2.1.1",
     "express": "^5.2.1",
