@@ -1,0 +1,56 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install root dependencies
+        run: npm ci
+      
+      - name: Install UI dependencies
+        run: npm --prefix ui ci
+      
+      - name: Install backend API dependencies
+        run: npm --prefix backend/api-node ci
+      
+      - name: Run JavaScript linter
+        run: npm run lint
+      
+      - name: Run Markdown linter
+        run: npm run lint:md
+      
+      - name: Build UI
+        run: npm run build
+      
+      - name: Run tests (if available)
+        run: |
+          if [ -f "package.json" ] && grep -q '"test":' package.json; then
+            npm test
+          else
+            echo "No test script configured in root package.json, skipping..."
+            echo "Add 'test' script to package.json to enable automated testing"
+          fi

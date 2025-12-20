@@ -75,6 +75,19 @@ utilisateurs.
    un utilisateur présent dans `server/data/users.json` ou en créer un depuis
    Paramètres.
 
+## Contributing and Governance
+
+This repository has comprehensive governance and security configurations in place.
+See the following documents:
+
+- **[CONTRIBUTING.md](.github/CONTRIBUTING.md)** - How to contribute to this project
+- **[SECURITY.md](.github/SECURITY.md)** - How to report security vulnerabilities
+- **[GOVERNANCE_SETUP.md](docs/GOVERNANCE_SETUP.md)** - Complete governance setup guide
+
+**For maintainers:** Branch protection rules must be configured manually. See
+[GOVERNANCE_SETUP.md](docs/GOVERNANCE_SETUP.md) for instructions or use the provided
+script: `scripts/configure-branch-protection.sh`
+
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0

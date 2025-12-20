@@ -1,0 +1,24 @@
+# CODEOWNERS
+# This file defines code ownership and review requirements for the repository.
+# 
+# Each line is a file pattern followed by one or more owners.
+# Owners will be automatically requested for review when someone opens a PR
+# that modifies files matching the pattern.
+#
+# Note: Teams (@OurITRes/docs-team, @OurITRes/ops-team) must be created in your
+# GitHub organization. If teams don't exist yet, see docs/GOVERNANCE_SETUP.md
+# for instructions, or replace team references with individual usernames.
+#
+# More information: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner - All changes require approval from @IamPhilG
+*       @IamPhilG
+
+# Documentation - Requires docs team review (create team or replace with usernames)
+/docs/                  @OurITRes/docs-team @IamPhilG
+*.md                    @OurITRes/docs-team @IamPhilG
+
+# Infrastructure and deployment (create team or replace with usernames)
+/infra/                 @OurITRes/ops-team @IamPhilG
+/config/                @OurITRes/ops-team @IamPhilG
+/.github/workflows/     @OurITRes/ops-team @IamPhilG
