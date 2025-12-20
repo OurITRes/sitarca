@@ -9,8 +9,27 @@ Description: >-
 
 # Transform section specifies one or more macros that AWS CloudFormation uses to process your template
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
-Transform:
-- AWS::Serverless-2016-10-31
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  CognitoDomainPrefix:
+    Type: String
+    Description: "Unique Cognito Hosted UI domain prefix (must be unique per region)"
+    AllowedPattern: '^[a-z0-9-]{1,63}$'
+    Default: poc-cyberwatch-ai
+  CreateCognitoDomain:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Set to "true" to create/manage the Cognito Hosted UI domain from this stack.
+
+Conditions:
+  CreateDomainCondition:
+    Fn::Equals:
+      - !Ref CreateCognitoDomain
+      - "true"
 
 # Resources declares the AWS resources that you want to include in the stack
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
@@ -51,6 +70,77 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
+  # ----------------------------
+  # UI Hosting: S3 (private) + CloudFront OAI + Distribution
+  # ----------------------------
+  UiBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  UiCloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "${AWS::StackName} UI OAI"
+
+  UiBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref UiBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt UiCloudFrontOAI.S3CanonicalUserId
+            Action:
+              - s3:GetObject
+            Resource: !Sub "${UiBucket.Arn}/*"
+
+  UiDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Origins:
+          - Id: UiS3Origin
+            DomainName: !GetAtt UiBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${UiCloudFrontOAI}'
+        DefaultCacheBehavior:
+          TargetOriginId: UiS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+          MinimumProtocolVersion: TLSv1.2_2021
 
   # ----------------------------
   # DynamoDB (PAY_PER_REQUEST, pk/sk)
@@ -99,19 +189,28 @@ Resources:
       # OAuth configuration for Hosted UI
       AllowedOAuthFlows:
         - code
-        - implicit
       AllowedOAuthScopes:
         - email
         - openid
         - profile
       AllowedOAuthFlowsUserPoolClient: true
+      EnableTokenRevocation: true
       CallbackURLs:
         - http://localhost:5173/callback
         - http://localhost:5173
+        - !Sub "https://${UiDistribution.DomainName}/callback"
       LogoutURLs:
         - http://localhost:5173
+        - !Sub "https://${UiDistribution.DomainName}"
       SupportedIdentityProviders:
         - COGNITO
+
+  AdCyberwatchUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Condition: CreateDomainCondition
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref AdCyberwatchUserPool
 
   # ----------------------------
   # Cognito Identity Pool (for S3 access via temporary AWS credentials)
@@ -178,6 +277,7 @@ Resources:
         AllowOrigins:
           - 'http://localhost:5173'
           - 'http://localhost:5174'
+          - !Sub 'https://${UiDistribution.DomainName}'
         AllowMethods:
           - GET
           - POST
@@ -343,6 +443,15 @@ Outputs:
   FrameworksBucketName:
     Value: !Ref FrameworksBucket
 
+  UiBucketName:
+    Value: !Ref UiBucket
+
+  UiCloudFrontUrl:
+    Value: !Sub "https://${UiDistribution.DomainName}"
+
+  UiDistributionId:
+    Value: !Ref UiDistribution
+
   MainTableName:
     Value: !Ref AdCyberwatchMainTable
 
@@ -352,7 +461,7 @@ Outputs:
     Value: !Ref AdCyberwatchUserPoolClient
   CognitoHostedUIUrl:
     Description: Cognito Hosted UI Login URL
-    Value: !Sub "https://poc-cyberwatch-ai.auth.${AWS::Region}.amazoncognito.com/login?client_id=${AdCyberwatchUserPoolClient}&response_type=code&redirect_uri=http://localhost:5173/callback"
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${AdCyberwatchUserPoolClient}&response_type=code&redirect_uri=http://localhost:5173/callback"
 
   IdentityPoolId:
     Description: Cognito Identity Pool ID for S3 access
@@ -363,3 +472,6 @@ Outputs:
 
   HttpApiUrl:
     Value: !Sub "https://${AdCyberwatchHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+
+  CognitoDomainPrefix:
+    Value: !Ref CognitoDomainPrefix
