@@ -195,7 +195,7 @@ async function fetchWithAuth(url, options = {}) {
       const resp = await fetch('http://127.0.0.1:3001/config');
       const data = await resp.json();
       config = data.config || {};
-    } catch {}
+    } catch (e) { void e; }
     
     const thresholdSeconds = config.tokenRefreshThreshold || 300; // default 5 min
     
@@ -662,7 +662,7 @@ export async function handleOAuthCallback(code) {
       };
     }
   } catch (e) {
-    /* non-blocking: linking may fail in dev */
+    void e; /* non-blocking: linking may fail in dev */
   }
 
   return {

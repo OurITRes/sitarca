@@ -449,6 +449,22 @@ export default function PingcastlePage({ ctx }) {
                     Non mappés
                   </button>
                 </div>
+                {/* Ajout du filtre framework pour utiliser setSelectedFramework */}
+                <div className="flex gap-2 ml-8">
+                  {frameworks.map(fw => (
+                    <button
+                      key={fw.id}
+                      onClick={() => setSelectedFramework(fw.id)}
+                      className={`px-3 py-2 rounded text-sm font-medium border ${
+                        selectedFramework === fw.id
+                          ? 'bg-indigo-600 text-white border-indigo-700'
+                          : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-50'
+                      }`}
+                    >
+                      {fw.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
