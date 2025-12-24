@@ -82,7 +82,7 @@ export default function ProfilePage({ ctx }) {
       const newDisplayName = [fn, ln].filter(Boolean).join(' ').trim();
       setDisplayNameState(newDisplayName || displayNameState);
     }
-  }, [firstNameState, lastNameState]);
+  }, [firstNameState, lastNameState, displayNameState]);
 
   const compressImage = (dataUrl, maxWidth = 600, maxHeight = 600, quality = 0.75) => {
     return new Promise((resolve) => {
