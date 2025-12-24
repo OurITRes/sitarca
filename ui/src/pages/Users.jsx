@@ -4,7 +4,7 @@ import { Users, RefreshCw, Plus, Shield, ShieldCheck, Trash2, Award, X } from 'l
 import { t } from '../i18n';
 
 export default function UsersPage({ ctx }) {
-  const { users = [], loadUsers, setActiveView, authService, config, setConfig, handleSaveConfig, authenticatedUser } = ctx;
+  const { users = [], loadUsers, authService, config, setConfig, handleSaveConfig, authenticatedUser } = ctx;
   const lang = config?.language || 'fr';
   // Show list if user is admin or if there's no authenticated user (local mode)
   const isAdmin = ((authenticatedUser?.roles || []).includes('admin')) || ((ctx.currentUser?.roles || []).includes('admin')) || !authenticatedUser;

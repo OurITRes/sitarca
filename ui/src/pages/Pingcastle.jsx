@@ -11,7 +11,7 @@ export default function PingcastlePage({ ctx }) {
   const [latestReport, setLatestReport] = useState(null);
   const [findings, setFindings] = useState([]);
   const [pingcastleRules, setPingcastleRules] = useState([]);
-  const [selectedFramework, setSelectedFramework] = useState('all');
+  const [selectedFramework] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all'); // all, mapped, unmapped
   const [loading, setLoading] = useState(true);
   const [selectedFinding, setSelectedFinding] = useState(null);
@@ -91,7 +91,7 @@ export default function PingcastlePage({ ctx }) {
     }, 30000); // Refresh toutes les 30 secondes au lieu de 5-10
 
     return () => clearInterval(interval);
-  }, []); // Dépendances vides - exécuté une seule fois au montage
+  }, [loadData]); // Ajout de loadData comme dépendance
 
   const mapFindingToRule = (finding, rule) => {
     // Mapper un finding à une règle

@@ -195,7 +195,9 @@ async function fetchWithAuth(url, options = {}) {
       const resp = await fetch('http://127.0.0.1:3001/config');
       const data = await resp.json();
       config = data.config || {};
-    } catch {}
+    } catch {
+      // intentionally ignore config fetch errors
+    }
     
     const thresholdSeconds = config.tokenRefreshThreshold || 300; // default 5 min
     
@@ -454,8 +456,8 @@ export async function getUsers(){
     const data = await r.json();
     console.log('getUsers result:', data);
     return data;
-  }catch(e){
-    console.error('getUsers error:', e);
+  }catch{
+    // getUsers error intentionally ignored
     return [];
   }
 }
@@ -661,7 +663,7 @@ export async function handleOAuthCallback(code) {
         },
       };
     }
-  } catch (e) {
+  } catch {
     /* non-blocking: linking may fail in dev */
   }
 
