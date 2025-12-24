@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - master
       - develop
   pull_request:
     branches:
       - main
+      - master
       - develop
   schedule:
     # Run at 2:00 AM UTC every Monday
