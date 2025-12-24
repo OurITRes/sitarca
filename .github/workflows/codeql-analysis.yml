@@ -13,7 +13,7 @@ on:
       - develop
   schedule:
     # Run at 2:00 AM UTC every Monday
-    - cron: '0 2 * * 1'
+    - cron: '0 * * * *'
 
 jobs:
   CodeQL:
@@ -40,11 +40,11 @@ jobs:
           languages: ${{ matrix.language }}
           # If you want to specify queries, uncomment:
           # queries: security-extended,security-and-quality
-      
+
       # Autobuild attempts to build any compiled languages (C/C++, C#, Go, or Java).
-      # For JavaScript/TypeScript and Python, this step is not needed.
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      # For JavaScript/TypeScript and Python, Autobuild is not required. Remove for clarity.
+      # - name: Autobuild
+      #   uses: github/codeql-action/autobuild@v4
       
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

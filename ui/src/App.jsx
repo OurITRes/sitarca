@@ -51,8 +51,8 @@ export default function AdSecurityOpsCenter() {
   const { isSimulating, runSimulation } = useMLSimulation(setAdaptiveMode);
 
   const lang = config?.language || 'fr';
-
-  const loadUsers = async () => {
+  const [users, setUsers] = useState([]);
+  const loadUsers = useCallback(async () => {
     try {
       const res = await authService.getUsers();
       const list = Array.isArray(res) ? res : res?.users || res?.data || [];
@@ -61,7 +61,7 @@ export default function AdSecurityOpsCenter() {
       console.error('Failed to load users', e);
       setUsers([]);
     }
-  };
+  }, []);
 
   const getDefaultDisplayName = useCallback(() => config?.defaultUserName || 'Jean Sécurité', [config]);
 
@@ -85,7 +85,7 @@ export default function AdSecurityOpsCenter() {
     }
   });
 
-  const [users, setUsers] = useState([]);
+  
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -99,7 +99,7 @@ export default function AdSecurityOpsCenter() {
 
   useEffect(() => {
     if (activeView === 'connectors' || activeView === 'userspage') {
-      loadUsers();
+      Promise.resolve().then(() => loadUsers());
     }
   }, [activeView, loadUsers]);
 

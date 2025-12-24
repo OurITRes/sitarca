@@ -91,7 +91,7 @@ export default function PingcastlePage({ ctx }) {
     }, 30000); // Refresh toutes les 30 secondes au lieu de 5-10
 
     return () => clearInterval(interval);
-  }, []); // Dépendances vides - exécuté une seule fois au montage
+  }, [loadData]); // Ajout de loadData comme dépendance
 
   const mapFindingToRule = (finding, rule) => {
     // Mapper un finding à une règle
