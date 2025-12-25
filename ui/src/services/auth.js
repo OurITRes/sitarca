@@ -27,6 +27,7 @@ export function getUserFromToken() {
   
   // Map OIDC standard claims to user object
   return {
+    sub: claims.sub,
     id: claims.email || claims.sub, // Prefer email as ID for SSO
     email: claims.email,
     displayName: (claims.given_name || '') && (claims.family_name || '')
@@ -76,7 +77,7 @@ const userPool = new CognitoUserPool(poolData);
 // Load runtime UI configuration from local server
 async function getServerConfig() {
   try {
-    const resp = await fetch('http://127.0.0.1:3001/config');
+    const resp = await fetch(`${API_BASE}/config`);
     if (!resp.ok) return {};
     const data = await resp.json();
     return data.config || {};
@@ -192,7 +193,7 @@ async function fetchWithAuth(url, options = {}) {
     // Get config to check token refresh settings
     let config = {};
     try {
-      const resp = await fetch('http://127.0.0.1:3001/config');
+      const resp = await fetch(`${API_BASE}/config`);
       const data = await resp.json();
       config = data.config || {};
     } catch {
@@ -635,7 +636,7 @@ export async function handleOAuthCallback(code) {
   
   // Link SSO identity server-side for role assignment
   try {
-    const linkResp = await fetch('http://127.0.0.1:3001/auth/sso/link', {
+    const linkResp = await fetch(`${API_BASE}/auth/sso/link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ idToken: tokens.id_token }),
