@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Cloud, AlertCircle, CheckCircle } from 'lucide-react';
+import EnvironmentSwitcher from './EnvironmentSwitcher';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -108,6 +109,11 @@ export const AWSStatusIndicator = ({ config }) => {
               </p>
             </div>
           )}
+          <div className="font-semibold flex items-center space-x-2">
+            <Cloud size={16} />
+            <span><EnvironmentSwitcher /></span>
+          </div>
+          
         </div>
       </div>
     </div>
