@@ -1,6 +1,9 @@
 import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001';
+
+import { API_BASE, dataUrl, controlUrl } from './api';
+
+const localAPI = API_BASE;
 
 // OIDC: Decode JWT without verification (for claims extraction from id_token)
 // Note: Token signature verification happens server-side; client-side decode is safe for display only
@@ -77,7 +80,7 @@ const userPool = new CognitoUserPool(poolData);
 // Load runtime UI configuration from local server
 async function getServerConfig() {
   try {
-    const resp = await fetch(`${API_BASE}/config`);
+    const resp = await fetch(`${API_BASE}/public/config`);
     if (!resp.ok) return {};
     const data = await resp.json();
     return data.config || {};
@@ -311,9 +314,8 @@ export function logout() {
 export async function uploadFile(file, source = 'pingcastle') {
   try {
     // Always use local server for uploads (both local and SSO users)
-    const localAPI = 'http://127.0.0.1:3001';
-    
-    const response = await fetchWithAuth(`${localAPI}/uploads/presign`, {
+
+    const response = await fetchWithAuth(dataUrl('/uploads/presign'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -634,38 +636,18 @@ export async function handleOAuthCallback(code) {
   // Extract OIDC claims from ID token
   const userInfo = getUserFromToken();
   
-  // Link SSO identity server-side for role assignment
+  // En prod: on récupère le profil applicatif via /control/me
   try {
-    const linkResp = await fetch(`${API_BASE}/auth/sso/link`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: tokens.id_token }),
+    const meResp = await fetch(controlUrl('/control/me'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${tokens.id_token}` },
     });
-    if (linkResp.ok) {
-      const linked = await linkResp.json();
-      // Optionally store app session token in the future
-      return {
-        idToken: tokens.id_token,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        user: {
-          id: linked.id || userInfo?.id,
-          email: linked.email || userInfo?.email,
-          displayName: linked.displayName || userInfo?.displayName,
-          firstName: linked.firstName || userInfo?.firstName,
-          lastName: linked.lastName || userInfo?.lastName,
-          picture: linked.profileIcon || userInfo?.picture,
-          roles: linked.roles || userInfo?.roles || [],
-          authMode: 'sso',
-          idp: linked.idp || 'cognito',
-          issuer: linked.issuer,
-          subject: linked.subject,
-          oidcClaims: userInfo?.oidcClaims,
-        },
-      };
+    if (meResp.ok) {
+      const me = await meResp.json();
+      userInfo.roles = me?.user?.roles || userInfo?.roles || [];
     }
   } catch {
-    /* non-blocking: linking may fail in dev */
+    /* non-blocking */
   }
 
   return {
