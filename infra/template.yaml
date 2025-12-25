@@ -25,6 +25,23 @@ Parameters:
       - "false"
     Description: Set to "true" to create/manage the Cognito Hosted UI domain from this stack.
 
+  TenantAlias:
+    Type: String
+    Default: ad-cyberwatch-ai
+    Description: Tenant alias used for runtime config.
+  UiCustomDomain:
+    Type: String
+    Default: https://ad-cyberwatch-ai.ouritres.com
+    Description: Primary UI origin (CORS + Cognito callback).
+  DefaultDataEnv:
+    Type: String
+    Default: prod
+    Description: Default selected data environment.
+  EnabledDataEnvs:
+    Type: String
+    Default: prod,dev
+    Description: Comma-separated list of enabled environments.
+
 Conditions:
   CreateDomainCondition:
     Fn::Equals:
@@ -199,6 +216,7 @@ Resources:
         - http://localhost:5173/callback
         - http://localhost:5173
         - !Sub "https://${UiDistribution.DomainName}/callback"
+        - !Sub "${UiCustomDomain}/callback"
       LogoutURLs:
         - http://localhost:5173
         - !Sub "https://${UiDistribution.DomainName}"
@@ -278,6 +296,7 @@ Resources:
           - 'http://localhost:5173'
           - 'http://localhost:5174'
           - !Sub 'https://${UiDistribution.DomainName}'
+          - !Ref UiCustomDomain
         AllowMethods:
           - GET
           - POST
@@ -321,6 +340,10 @@ Resources:
           RAW_BUCKET: !Ref RawBucket
           CURATED_BUCKET: !Ref CuratedBucket
           FRAMEWORKS_BUCKET: !Ref FrameworksBucket
+          TENANT_ALIAS: !Ref TenantAlias
+          DEFAULT_DATA_ENV: !Ref DefaultDataEnv
+          ENABLED_DATA_ENVS: !Ref EnabledDataEnvs
+          CORS_ALLOW_ORIGINS: !Sub "http://localhost:5173,http://localhost:5174,https://${UiDistribution.DomainName},${UiCustomDomain}"
       Policies:
         # DynamoDB read/write (simple pour POC)
         - DynamoDBCrudPolicy:
@@ -363,6 +386,32 @@ Resources:
             ApiId: !Ref AdCyberwatchHttpApi
             Path: /uploads/presign
             Method: POST
+        DataPresign:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /data/{env}/uploads/presign
+            Method: POST
+        PublicConfig:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /public/config
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        ControlMe:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /control/me
+            Method: GET
+        ControlEnvironments:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /control/environments
+            Method: GET
 
   ApiFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -461,7 +510,7 @@ Outputs:
     Value: !Ref AdCyberwatchUserPoolClient
   CognitoHostedUIUrl:
     Description: Cognito Hosted UI Login URL
-    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${AdCyberwatchUserPoolClient}&response_type=code&redirect_uri=http://localhost:5173/callback"
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${AdCyberwatchUserPoolClient}&response_type=code&redirect_uri=${UiCustomDomain}/callback"
 
   IdentityPoolId:
     Description: Cognito Identity Pool ID for S3 access
