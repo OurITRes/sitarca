@@ -412,6 +412,30 @@ Resources:
             ApiId: !Ref AdCyberwatchHttpApi
             Path: /control/environments
             Method: GET
+        UploadsList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /uploads
+            Method: GET
+        DataUploadsList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /data/{env}/uploads
+            Method: GET
+        UploadsDelete:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /uploads
+            Method: DELETE
+        DataUploadsDelete:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AdCyberwatchHttpApi
+            Path: /data/{env}/uploads
+            Method: DELETE
 
   ApiFunctionLogGroup:
     Type: AWS::Logs::LogGroup

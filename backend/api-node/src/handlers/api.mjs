@@ -1,8 +1,9 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 const s3Client = new S3Client({});
+
 
 const TENANT_ALIAS = process.env.TENANT_ALIAS || 'local';
 const DEFAULT_DATA_ENV = process.env.DEFAULT_DATA_ENV || 'prod';
@@ -151,6 +152,38 @@ async function controlMeHandler(event, headers) {
   }, headers);
 }
 
+async function listUploadsFromS3(env) {
+  const Prefix = `raw/env=${env}/`;
+
+  const resp = await s3Client.send(new ListObjectsV2Command({
+    Bucket: RAW_BUCKET,
+    Prefix,
+    MaxKeys: 100
+  }));
+
+  const items = (resp.Contents || []).map(o => {
+    const key = o.Key;
+    const filename = key.split('/').pop();
+    return {
+      id: key,                 // simple et stable
+      s3Key: key,
+      filename,
+      status: "uploaded",
+      findings: 0,
+      uploadedAt: (o.LastModified || new Date()).toISOString()
+    };
+  });
+
+  // tri newest first
+  items.sort((a,b) => (b.uploadedAt || "").localeCompare(a.uploadedAt || ""));
+  return items;
+}
+
+async function deleteUploadFromS3(key) {
+  await s3Client.send(new DeleteObjectCommand({ Bucket: RAW_BUCKET, Key: key }));
+  return { ok: true };
+}
+
 /**
  * POST /uploads/presign (protected)  (legacy)
  * POST /data/{env}/uploads/presign (protected)
@@ -174,7 +207,7 @@ async function presignHandler(event, headers, env) {
 
   // MVP "séparation env" => préfixe dans la clé
   const today = new Date().toISOString().split('T')[0];
-  const uuid = uuidv4();
+  const uuid = randomUUID();
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
   const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uuid}.xml`;
 
@@ -187,6 +220,32 @@ async function presignHandler(event, headers, env) {
     return json(500, { error: 'Failed to generate presigned URL' }, headers);
   }
 }
+async function uploadsListHandler(event, headers, env) {
+  const user = getUserFromAuthorizer(event);
+  if (!user) return json(401, { error: 'Unauthorized' }, headers);
+
+  const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
+  const items = await listUploadsFromS3(safeEnv);
+  return json(200, { env: safeEnv, items }, headers);
+}
+
+async function uploadsDeleteHandler(event, headers, env) {
+  const user = getUserFromAuthorizer(event);
+  if (!user) return json(401, { error: 'Unauthorized' }, headers);
+
+  const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
+  const key = event.queryStringParameters?.key;
+  if (!key) return json(400, { error: 'Missing key query parameter' }, headers);
+
+  // Optionnel (sécurité légère): empêcher de delete hors env
+  if (!key.startsWith(`raw/env=${safeEnv}/`)) {
+    return json(400, { error: 'Key not in selected env prefix' }, headers);
+  }
+
+  const resp = await deleteUploadFromS3(key);
+  return json(200, { env: safeEnv, ...resp }, headers);
+}
+
 
 export const handler = async (event) => {
   const headers = corsHeaders(event);
@@ -212,6 +271,22 @@ export const handler = async (event) => {
     const m = path.match(/^\/data\/([^/]+)\/uploads\/presign$/);
     if (method === 'POST' && m) return await presignHandler(event, headers, m[1]);
     if (method === 'POST' && path === '/uploads/presign') return await presignHandler(event, headers, DEFAULT_DATA_ENV);
+
+    // data plane uploads list/delete
+    const mList = path.match(/^\/data\/([^/]+)\/uploads$/);
+    if (mList && method === 'GET') return await uploadsListHandler(event, headers, mList[1]);
+    if (mList && method === 'DELETE') return await uploadsDeleteHandler(event, headers, mList[1]);
+
+    // legacy uploads list/delete (compat)
+    // /uploads?env=dev
+    if (path === '/uploads' && method === 'GET') {
+      const env = event.queryStringParameters?.env || DEFAULT_DATA_ENV;
+      return await uploadsListHandler(event, headers, env);
+    }
+    if (path === '/uploads' && method === 'DELETE') {
+      const env = event.queryStringParameters?.env || DEFAULT_DATA_ENV;
+      return await uploadsDeleteHandler(event, headers, env);
+    }
 
     return json(404, { error: 'Not Found' }, headers);
   } catch (err) {

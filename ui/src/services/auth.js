@@ -1,8 +1,6 @@
 import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
 import { API_BASE, dataUrl, controlUrl } from './api';
 
-
-
 // OIDC: Decode JWT without verification (for claims extraction from id_token)
 // Note: Token signature verification happens server-side; client-side decode is safe for display only
 function decodeJWT(token) {
@@ -194,7 +192,7 @@ async function fetchWithAuth(url, options = {}) {
     // Get config to check token refresh settings
     let config = {};
     try {
-      const resp = await fetch(`${API_BASE}/config`);
+      const resp = await fetch(`${API_BASE}/public/config`);
       const data = await resp.json();
       config = data.config || {};
     } catch {
@@ -349,9 +347,8 @@ export async function uploadFile(file, source = 'pingcastle') {
 
 export async function getUploads() {
   try {
-    const localAPI = API_BASE;
     // Use fetch directly for local API (no auth needed)
-    const response = await fetch(`${localAPI}/uploads`);
+    const response = await fetchWithAuth(dataUrl('/uploads'));
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -368,10 +365,9 @@ export async function getUploads() {
 
 export async function deleteUpload(s3Key) {
   try {
-    const localAPI = API_BASE;
     const params = new URLSearchParams({ key: s3Key });
     // Use fetch directly for local API (no auth needed)
-    const response = await fetch(`${localAPI}/uploads?${params.toString()}`, {
+    const response = await fetchWithAuth(dataUrl(`/uploads?${params.toString()}`), {
       method: 'DELETE',
     });
     

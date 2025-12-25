@@ -1,0 +1,14 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "https://ad-cyberwatch-ai.ouritres.com",
+        "http://localhost:5173"
+      ],
+      "AllowedMethods": ["GET","PUT","POST","HEAD"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag","x-amz-request-id","x-amz-id-2","x-amz-version-id"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}
