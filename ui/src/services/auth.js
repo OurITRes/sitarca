@@ -176,7 +176,7 @@ export async function refreshAccessToken() {
 // Kept for potential future use or documentation purposes
 // eslint-disable-next-line no-unused-vars
 function getApiBase() {
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   return isLocalUser() ? localAPI : API_BASE;
 }
 
@@ -349,7 +349,7 @@ export async function uploadFile(file, source = 'pingcastle') {
 
 export async function getUploads() {
   try {
-    const localAPI = 'http://127.0.0.1:3001';
+    const localAPI = API_BASE;
     // Use fetch directly for local API (no auth needed)
     const response = await fetch(`${localAPI}/uploads`);
     
@@ -368,7 +368,7 @@ export async function getUploads() {
 
 export async function deleteUpload(s3Key) {
   try {
-    const localAPI = 'http://127.0.0.1:3001';
+    const localAPI = API_BASE;
     const params = new URLSearchParams({ key: s3Key });
     // Use fetch directly for local API (no auth needed)
     const response = await fetch(`${localAPI}/uploads?${params.toString()}`, {
@@ -404,7 +404,7 @@ export async function getMe() {
 export async function getWeaknesses() {
   try {
     // Always use local server for weaknesses (both local and SSO users)
-    const localAPI = 'http://127.0.0.1:3001';
+    const localAPI = API_BASE;
     
     const response = await fetch(`${localAPI}/weaknesses`);
     if (!response.ok) {
@@ -421,7 +421,7 @@ export async function getWeaknesses() {
 export async function getPingCastleRules() {
   try {
     // Always use local server for PingCastle rules
-    const localAPI = 'http://127.0.0.1:3001';
+    const localAPI = API_BASE;
     
     const response = await fetch(`${localAPI}/pingcastle/rules`);
     if (!response.ok) {
@@ -450,7 +450,7 @@ export async function getWeaknessDetail(weaknessId) {
 }
 
 export async function getUsers(){
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{ 
     const r = await fetch(`${localAPI}/users`); 
     if (!r.ok) throw new Error('not ok: ' + r.status);
@@ -464,7 +464,7 @@ export async function getUsers(){
 }
 
 export async function createUser(user){
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{
     const r = await fetch(`${localAPI}/users`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(user) });
     const data = await r.json().catch(()=>null);
@@ -476,7 +476,7 @@ export async function createUser(user){
 }
 
 export async function updateUser(id, user){
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{
     const r = await fetch(`${localAPI}/users/${encodeURIComponent(id)}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(user) });
     const data = await r.json().catch(()=>null);
@@ -488,7 +488,7 @@ export async function updateUser(id, user){
 }
 
 export async function deleteUser(id){
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{
     const r = await fetch(`${localAPI}/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
     const data = await r.json().catch(()=>null);
@@ -500,12 +500,12 @@ export async function deleteUser(id){
 }
 
 export async function getRoles(){
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{ const r = await fetch(`${localAPI}/roles`); if (!r.ok) throw new Error('no'); return await r.json(); }catch{ return []; }
 }
 
 export async function createRole(role){
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{
     const payload = (typeof role === 'string') ? role : (role?.role || role?.name || '');
     const r = await fetch(`${localAPI}/roles`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
@@ -516,13 +516,13 @@ export async function createRole(role){
 }
 
 export async function deleteRole(role){
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{ const r = await fetch(`${localAPI}/roles/${encodeURIComponent(role)}`, { method: 'DELETE' }); const data = await r.json(); if (!r.ok) throw new Error(data?.error || 'delete_role_failed'); return data; }catch(e){ throw new Error(`deleteRole failed: ${e.message}`); }
 }
 
 export async function login(id, password){
   // Use local server authentication (port 3001)
-  const localAPI = 'http://127.0.0.1:3001';
+  const localAPI = API_BASE;
   try{
     const r = await fetch(`${localAPI}/auth/login`, {
       method: 'POST',
