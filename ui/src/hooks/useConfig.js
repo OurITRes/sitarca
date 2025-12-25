@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { APP_CONFIG } from '../config';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const useConfig = () => {
   const [config, setConfig] = useState({
     appName: APP_CONFIG.appName,
@@ -16,7 +18,7 @@ export const useConfig = () => {
 
   // Load config from server on mount
   useEffect(() => {
-    fetch('http://127.0.0.1:3001/public/config')
+    fetch(`${API_URL}/public/config`)
       .then(res => res.json())
       .then(data => {
         if (data.config) {
@@ -50,7 +52,7 @@ export const useConfig = () => {
     const payloadConfig = overrideConfig ? { ...config, ...overrideConfig } : config;
 
     // Persist to server endpoint
-    fetch('http://127.0.0.1:3001/public/config', {
+    fetch(`${API_URL}/public/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: payloadConfig, supportedLanguages })
