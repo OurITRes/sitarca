@@ -209,7 +209,9 @@ async function presignHandler(event, headers, env) {
   const today = new Date().toISOString().split('T')[0];
   const uuid = randomUUID();
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
-  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uuid}/
+  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uuid}.xml`;
+
+  try {
     const command = new PutObjectCommand({ Bucket: RAW_BUCKET, Key: s3Key });
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
     return json(200, { uploadUrl, s3Key, expiresIn: 900 }, headers);
@@ -270,38 +272,7 @@ export const handler = async (event) => {
     if (method === 'POST' && m) return await presignHandler(event, headers, m[1]);
     if (method === 'POST' && path === '/uploads/presign') return await presignHandler(event, headers, DEFAULT_DATA_ENV);
 
-    const dataUploadsMatch = path.match(/^\/data\/([^/]+)\/uploads$/);
-
-    if (dataUploadsMatch && method === 'GET') {
-      const env = decodeURIComponent(dataUploadsMatch[1]);
-      requireAuth(event);
-      return ok(await listUploadsFromS3(env), origin);
-    }
-
-    if (dataUploadsMatch && method === 'DELETE') {
-      const env = decodeURIComponent(dataUploadsMatch[1]);
-      requireAuth(event);
-      const key = event.queryStringParameters?.key;
-      if (!key) return badRequest("Missing key", origin);
-      return ok(await deleteUploadFromS3(key), origin);
-    }
-
-    // compat mode (ancienne UI): /uploads?env=dev
-    if (path === '/uploads' && method === 'GET') {
-      requireAuth(event);
-      const env = event.queryStringParameters?.env || "dev";
-      return ok(await listUploadsFromS3(env), origin);
-    }
-
-    if (path === '/uploads' && method === 'DELETE') {
-      requireAuth(event);
-      const env = event.queryStringParameters?.env || "dev";
-      const key = event.queryStringParameters?.key;
-      if (!key) return badRequest("Missing key", origin);
-      return ok(await deleteUploadFromS3(key), origin);
-    }
-
-        // data plane uploads list/delete
+    // data plane uploads list/delete
     const mList = path.match(/^\/data\/([^/]+)\/uploads$/);
     if (mList && method === 'GET') return await uploadsListHandler(event, headers, mList[1]);
     if (mList && method === 'DELETE') return await uploadsDeleteHandler(event, headers, mList[1]);
