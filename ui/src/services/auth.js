@@ -356,7 +356,7 @@ export async function getUploads() {
     }
     
     const data = await response.json();
-    return data.uploads || [];
+    return data.uploads || data.items || [];
   } catch (error) {
     console.error('Get uploads error:', error);
     throw error;
