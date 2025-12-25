@@ -215,6 +215,7 @@ async function presignHandler(event, headers, env) {
   const uploadId = randomUUID();
   // MVP "séparation env" => préfixe dans la clé
   const today = new Date().toISOString().split('T')[0];
+  const uuid = randomUUID();
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
   const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uploadId}.xml`;
 
