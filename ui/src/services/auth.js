@@ -648,6 +648,25 @@ export async function handleOAuthCallback(code) {
     /* non-blocking */
   }
 
+  // Initialize environments (non-blocking)
+  try {
+    const envResp = await fetch(controlUrl('/control/environments'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${tokens.id_token}` },
+    });
+    if (envResp.ok) {
+      const envData = await envResp.json();
+      const defaultEnv = envData?.defaultEnv || 'prod';
+      if (!localStorage.getItem('cw.env')) {
+        localStorage.setItem('cw.env', defaultEnv);
+      }
+      // Optionnel: stocker la liste pour affichage futur
+      localStorage.setItem('cw.envs', JSON.stringify(envData?.environments || []));
+    }
+  } catch {
+    /* non-blocking */
+  }
+
   return {
     idToken: tokens.id_token,
     accessToken: tokens.access_token,
