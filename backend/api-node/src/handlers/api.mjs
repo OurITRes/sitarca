@@ -1,10 +1,9 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
-
 
 const s3Client = new S3Client({});
+
 
 const TENANT_ALIAS = process.env.TENANT_ALIAS || 'local';
 const DEFAULT_DATA_ENV = process.env.DEFAULT_DATA_ENV || 'prod';
@@ -245,6 +244,37 @@ export const handler = async (event) => {
     const m = path.match(/^\/data\/([^/]+)\/uploads\/presign$/);
     if (method === 'POST' && m) return await presignHandler(event, headers, m[1]);
     if (method === 'POST' && path === '/uploads/presign') return await presignHandler(event, headers, DEFAULT_DATA_ENV);
+
+    const dataUploadsMatch = path.match(/^\/data\/([^/]+)\/uploads$/);
+
+    if (dataUploadsMatch && method === 'GET') {
+      const env = decodeURIComponent(dataUploadsMatch[1]);
+      requireAuth(event);
+      return ok(await listUploadsFromS3(env), origin);
+    }
+
+    if (dataUploadsMatch && method === 'DELETE') {
+      const env = decodeURIComponent(dataUploadsMatch[1]);
+      requireAuth(event);
+      const key = event.queryStringParameters?.key;
+      if (!key) return badRequest("Missing key", origin);
+      return ok(await deleteUploadFromS3(key), origin);
+    }
+
+    // compat mode (ancienne UI): /uploads?env=dev
+    if (path === '/uploads' && method === 'GET') {
+      requireAuth(event);
+      const env = event.queryStringParameters?.env || "dev";
+      return ok(await listUploadsFromS3(env), origin);
+    }
+
+    if (path === '/uploads' && method === 'DELETE') {
+      requireAuth(event);
+      const env = event.queryStringParameters?.env || "dev";
+      const key = event.queryStringParameters?.key;
+      if (!key) return badRequest("Missing key", origin);
+      return ok(await deleteUploadFromS3(key), origin);
+    }
 
     return json(404, { error: 'Not Found' }, headers);
   } catch (err) {
