@@ -226,7 +226,7 @@ async function uploadsListHandler(event, headers, env) {
 
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
   const items = await listUploadsFromS3(safeEnv);
-  return json(200, { env: safeEnv, items }, headers);
+  return json(200, { env: safeEnv, uploads: items }, headers);
 }
 
 async function uploadsDeleteHandler(event, headers, env) {
