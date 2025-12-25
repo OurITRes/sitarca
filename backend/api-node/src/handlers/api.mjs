@@ -154,7 +154,8 @@ async function controlMeHandler(event, headers) {
 
 async function listUploadsFromS3(env) {
   const Prefix = `raw/env=${env}/`;
-  const resp = await s3.send(new ListObjectsV2Command({
+
+  const resp = await s3Client.send(new ListObjectsV2Command({
     Bucket: RAW_BUCKET,
     Prefix,
     MaxKeys: 100
@@ -179,7 +180,7 @@ async function listUploadsFromS3(env) {
 }
 
 async function deleteUploadFromS3(key) {
-  await s3.send(new DeleteObjectCommand({ Bucket: RAW_BUCKET, Key: key }));
+  await s3Client.send(new DeleteObjectCommand({ Bucket: RAW_BUCKET, Key: key }));
   return { ok: true };
 }
 
@@ -219,6 +220,32 @@ async function presignHandler(event, headers, env) {
     return json(500, { error: 'Failed to generate presigned URL' }, headers);
   }
 }
+async function uploadsListHandler(event, headers, env) {
+  const user = getUserFromAuthorizer(event);
+  if (!user) return json(401, { error: 'Unauthorized' }, headers);
+
+  const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
+  const items = await listUploadsFromS3(safeEnv);
+  return json(200, { env: safeEnv, items }, headers);
+}
+
+async function uploadsDeleteHandler(event, headers, env) {
+  const user = getUserFromAuthorizer(event);
+  if (!user) return json(401, { error: 'Unauthorized' }, headers);
+
+  const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
+  const key = event.queryStringParameters?.key;
+  if (!key) return json(400, { error: 'Missing key query parameter' }, headers);
+
+  // Optionnel (sécurité légère): empêcher de delete hors env
+  if (!key.startsWith(`raw/env=${safeEnv}/`)) {
+    return json(400, { error: 'Key not in selected env prefix' }, headers);
+  }
+
+  const resp = await deleteUploadFromS3(key);
+  return json(200, { env: safeEnv, ...resp }, headers);
+}
+
 
 export const handler = async (event) => {
   const headers = corsHeaders(event);
@@ -274,6 +301,22 @@ export const handler = async (event) => {
       const key = event.queryStringParameters?.key;
       if (!key) return badRequest("Missing key", origin);
       return ok(await deleteUploadFromS3(key), origin);
+    }
+
+        // data plane uploads list/delete
+    const mList = path.match(/^\/data\/([^/]+)\/uploads$/);
+    if (mList && method === 'GET') return await uploadsListHandler(event, headers, mList[1]);
+    if (mList && method === 'DELETE') return await uploadsDeleteHandler(event, headers, mList[1]);
+
+    // legacy uploads list/delete (compat)
+    // /uploads?env=dev
+    if (path === '/uploads' && method === 'GET') {
+      const env = event.queryStringParameters?.env || DEFAULT_DATA_ENV;
+      return await uploadsListHandler(event, headers, env);
+    }
+    if (path === '/uploads' && method === 'DELETE') {
+      const env = event.queryStringParameters?.env || DEFAULT_DATA_ENV;
+      return await uploadsDeleteHandler(event, headers, env);
     }
 
     return json(404, { error: 'Not Found' }, headers);
