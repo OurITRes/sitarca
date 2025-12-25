@@ -1,6 +1,6 @@
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 const s3Client = new S3Client({});
 
@@ -207,11 +207,9 @@ async function presignHandler(event, headers, env) {
 
   // MVP "séparation env" => préfixe dans la clé
   const today = new Date().toISOString().split('T')[0];
-  const uuid = uuidv4();
+  const uuid = randomUUID();
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
-  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uuid}.xml`;
-
-  try {
+  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uuid}/
     const command = new PutObjectCommand({ Bucket: RAW_BUCKET, Key: s3Key });
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
     return json(200, { uploadUrl, s3Key, expiresIn: 900 }, headers);
