@@ -210,16 +210,18 @@ async function presignHandler(event, headers, env) {
 
   if (!RAW_BUCKET) return json(500, { error: 'RAW_BUCKET missing' }, headers);
 
+
+  // Génère un uploadId unique (UUID)
+  const uploadId = randomUUID();
   // MVP "séparation env" => préfixe dans la clé
   const today = new Date().toISOString().split('T')[0];
-  const uuid = randomUUID();
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
-  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uuid}.xml`;
+  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uploadId}.xml`;
 
   try {
     const command = new PutObjectCommand({ Bucket: RAW_BUCKET, Key: s3Key });
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
-    return json(200, { uploadUrl, s3Key, expiresIn: 900 }, headers);
+    return json(200, { uploadUrl, s3Key, uploadId, expiresIn: 900 }, headers);
   } catch (err) {
     console.error('[presign] error:', err);
     return json(500, { error: 'Failed to generate presigned URL' }, headers);
