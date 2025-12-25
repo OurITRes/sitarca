@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '../components';
 import { Globe, PlusCircle, Edit2, Save, X, Shield } from 'lucide-react';
 import { TRANSLATIONS } from '../i18n/index.js';
+import { API_BASE } from '../services/api';
 
 export default function LanguagesPage({ ctx }) {
   const { config, setConfig, supportedLanguages, addSupportedLanguage, authenticatedUser, currentUser } = ctx;
@@ -65,7 +66,7 @@ export default function LanguagesPage({ ctx }) {
         console.log('Tentative de suppression de', ignoredKeys.size, 'clés:', Array.from(ignoredKeys));
         
         // Supprimer les clés du fichier i18n via le serveur
-        const response = await fetch('http://127.0.0.1:3001/translations/remove-keys', {
+        const response = await fetch(`${API_BASE}/translations/remove-keys`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ keys: Array.from(ignoredKeys) })
@@ -104,7 +105,7 @@ export default function LanguagesPage({ ctx }) {
           });
           
           // Sauvegarder dans le fichier i18n
-          const updateResponse = await fetch('http://127.0.0.1:3001/translations/update-keys', {
+          const updateResponse = await fetch(`${API_BASE}/translations/update-keys`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
