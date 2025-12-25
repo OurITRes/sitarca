@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Cloud, AlertCircle, CheckCircle } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001';
 
 export const AWSStatusIndicator = ({ config }) => {
   const [status, setStatus] = useState('loading');
@@ -8,8 +11,8 @@ export const AWSStatusIndicator = ({ config }) => {
   useEffect(() => {
     const checkAWSStatus = async () => {
       try {
-        // Try to get AWS identity
-        const response = await fetch('http://127.0.0.1:3001/aws/identity', {
+        // Try to get AWS health
+        const response = await fetch(`${API_URL}/health`, {
           method: 'GET',
         });
         
