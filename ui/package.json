@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.398.0",
+    "@aws-sdk/client-s3": "^3.962.0",
     "@aws-sdk/s3-request-presigner": "^3.398.0",
     "amazon-cognito-identity-js": "^6.3.16",
     "clsx": "^2.1.1",
