@@ -1,12 +1,16 @@
-# SITARCA (beta)
+# SITARCA (beta) : Identity Security Posture Management (ISPM)
 
 <table style="width: 100%; border-collapse: collapse; border: 0px solid #ddd;">
   <thead>
     <tr style="background-color: #f8f9fa;">
-      <th rowspan="2" style="padding: 8px;"> <img src="https://github.com/OurITRes/.github/blob/main/sitarca.svg" width="60" height="60"> </th>
+      <th rowspan="2" style="padding: 8px;">
+      <img src="https://github.com/OurITRes/.github/blob/main/sitarca.svg" width="60" height="60"
+      alt="">
+      </th>
     </tr>
     <tr style="background-color: #f8f9fa;">
-      <th style="padding: 8px;"><span style="font-weight: 600; color: #2C3E50; letter-spacing: 0.1em; ">Synchronized Intelligence, Tiered Automated Remediation &amp; Conformity Alignment</th>
+      <th style="padding: 8px;"><span style="font-weight: 600; color: #2C3E50; letter-spacing: 0.1em; ">
+      Synchronized Intelligence, Tiered Automated Remediation &amp; Conformity Alignment</th>
     </tr>
   </thead>
 </table>
@@ -19,164 +23,55 @@
   </thead>
 </table>
 
-Tableau de bord de sécurité Active Directory avec vues dédiées
-(Command Center, Investigation & Graphe, Plan de remédiation, IA/Modèle,
-Paramètres & Connecteurs, Profil). Frontend React/Vite + serveur de
-configuration Express pour la persistance locale des paramètres et des
-utilisateurs.
+La "**Pierre de Rosette**" de la **sécurité des identités**.
+_Link vulnerabilities tools to Control Frameworks.
+Identify gaps and plan remediation with a data-driven model._
 
-## Fonctionnalités principales
+## 📖 Vision du Projet
 
-- Auth local + gestion des utilisateurs (création, suppression, rôles,
-  mode local/SSO stub) via la page Paramètres.
-- Vues extraites par page : Dashboard, Détails/Investigation, Remédiation,
-  Moteur IA/Modèle, Paramètres & Connecteurs, Profil.
-- Stockage config/utilisateurs en fichiers JSON côté serveur
-  (`server/data/config.json`, `server/data/users.json`).
-- Sélecteur de langue, affichage nom/avatar, navigation latérale et header
-  communs.
+Sitarca est une plateforme de **Normalisation et de Gouvernance** dédiée à la sécurité de
+l'Active Directory et des Identités.
 
-## Prérequis
+Là où les outils existants (PingCastle, Bloodhound) fournissent des listes techniques de problèmes ou de
+chemins d'attaque, Sitarca :
 
-- Node.js 18+ (recommandé) et npm.
+1. **Centralise** ces données hétérogènes.
+2. **Normalise** l'information dans un format universel ("Sitarca Vulnerability Format").
+3. **Traduit** techniquement ces failles en impacts de conformité (NIST, ISO, CIS).
+4. **Priorise** la remédiation basée sur la réduction réelle du risque (Gap Analysis).
 
-## Installation
+## 🏗 Architecture
 
-1. Installer les dépendances :
+Le projet suit une architecture stricte en trois couches pour garantir la séparation des responsabilités :
 
-   ```bash
-   npm install
-   ```
+- 📂 /data : La source de vérité. Contient les schémas JSON (la "Pierre de Rosette"), les référentiels de
+  contrôle (Frameworks) et les règles de traduction.
+- ⚙️ /backend : Le moteur intelligent. Gère l'ingestion (ETL), le mapping automatique et l'API.
+- 🖥️ /frontend : L'interface utilisateur. Tableaux de bord de conformité et plans de remédiation
+  interactifs.
 
-## Lancer en développement
+## 🔌 Intégrations (V1)
 
-- Front + serveur config en parallèle (ports par défaut 5173 et 3001) :
+Cette version se concentre exclusivement sur la posture de sécurité de l'identité :
 
-  ```bash
-  npm run dev:both
-  ```
+- **PingCastle** (Hygiène AD & Mauvaises configurations)
+- **Bloodhound Enterprise** (Chemins d'attaque & Graphes de relations)
 
-- Ou séparément :
+## 🚀 Démarrage Rapide
 
-  ```bash
-  npm run dev          # Frontend Vite
-  node server/config-server.js  # API config/utilisateurs
-  ```
+_Note : Instructions de développement à venir une fois le squelette initialisé._
 
-### Build / Lint
+### Pré-requis
 
-- Build : `npm run build`
-- Preview du build : `npm run preview`
-- Lint : `npm run lint`
+- Python 3.10+ (Backend)
+- Node.js 18+ (Frontend)
 
-### Structure rapide (UI isolée)
+## 🗺 Roadmap
 
-- Voir la section détaillée « Structure du projet » ci‑dessous.
-- `ui/` contient tout le frontend (React/Vite) isolé.
-- `server/` contient l’API locale et les données côté serveur.
-- `backend/` contient les fonctions Lambda (API et ingestion).
-- `infra/` contient l’infrastructure (SAM/CloudFormation, tests, événements).
+- [ ] Phase 1 : Data Model - Définition du format universel JSON.
+- [ ] Phase 2 : Ingestion - Parsers pour XML PingCastle et JSON Bloodhound.
+- [ ] Phase 3 : Engine - Moteur de mapping vers NIST CSF 2.0.
+- [ ] Phase 4 : UI - Dashboard de conformité et Gap Analysis.
 
-### Authentification et données
-
-- Les utilisateurs sont stockés dans `server/data/users.json`. Créez-en un via
-  la page Paramètres -> "Créer un utilisateur" ou en POST sur `/users`.
-- Login vérifie l'ID + mot de passe (hash SHA-256 côté serveur). Les comptes
-  sans mot de passe défini ne pourront pas se connecter.
-- Les paramètres (Jira, ServiceNow, langues, etc.) sont stockés dans
-  `server/data/config.json` via `/config`.
-
-### Déploiement local rapide
-
-1. `npm install`
-2. `npm run dev:both`
-3. Ouvrir [http://localhost:5173](http://localhost:5173) et se connecter avec
-   un utilisateur présent dans `server/data/users.json` ou en créer un depuis
-   Paramètres.
-
-## Contributing and Governance
-
-This repository has comprehensive governance and security configurations in place.
-See the following documents:
-
-- **[CONTRIBUTING.md](.github/CONTRIBUTING.md)** - How to contribute to this project
-- **[SECURITY.md](.github/SECURITY.md)** - How to report security vulnerabilities
-- **[GOVERNANCE_SETUP.md](docs/GOVERNANCE_SETUP.md)** - Complete governance setup guide
-
-**For maintainers:** Branch protection rules must be configured manually. See
-[GOVERNANCE_SETUP.md](docs/GOVERNANCE_SETUP.md) for instructions or use the provided
-script: `scripts/configure-branch-protection.sh`
-
-## License
-
-This project is licensed under the GNU Affero General Public License v3.0
-(AGPL-3.0-only). See the [LICENSE](./LICENSE) file.
-
-If you run a modified version of this software as a network service, you must
-offer the corresponding source code to users interacting with it over the
-network (AGPLv3).
-
----
-
-## Structure du projet (actualisée)
-
-```text
-ad-cyberwatch.ai/
-├── ui/                         # 📱 UI LAYER (frontend isolé)
-│   ├── src/                    # composants React, pages, services
-│   ├── public/                 # assets statiques
-│   ├── index.html
-│   ├── vite.config.js
-│   ├── package.json            # dépendances UI
-│   └── (tailwind, postcss, eslint, etc.)
-│
-├── server/                     # 💾 API locale & données (dev)
-│   ├── config-server.js        # serveur Express local
-│   ├── oidc-provider.js        # fournisseur OIDC de dev
-│   └── data/                   # 🔒 données côté serveur (non exposées)
-│       ├── users.json          # comptes locaux
-│       ├── uploads.json        # métadonnées d’upload
-│       ├── config.json         # configuration runtime
-│       └── *.xml               # fichiers PingCastle/BloodHound
-│
-├── backend/                    # ⚡ Fonctions Lambda (AWS)
-│   ├── api-node/               # API (Node.js) → /health, /me, /uploads/presign
-│   └── ingest-python/          # Ingestion (Python) → parse XML → DynamoDB
-│
-├── infra/                      # 🏗️ Infra as Code (SAM/CloudFormation)
-│   ├── template.yaml           # ressources (S3, DynamoDB, Cognito, API, Lambda)
-│   ├── __tests__/              # tests d’infrastructure
-│   └── events/                 # événements de test pour Lambda
-│
-├── config/                     # ⚙️ Environnements & Sécurité
-│   ├── environments/           # dev/staging/prod (.json)
-│   └── security/               # IAM policies, CORS, Auth
-│
-├── docs/                       # 📚 documentation
-├── scripts/                    # 🛠️ outils (ex: dev-both.js)
-└── archivesNotUsed/            # 🗄️ archives (ignorées par git)
-```
-
-### Segregation logique
-
-- **UI (ui/):** application SPA React, déployée sur S3/CloudFront.
-- **API (backend/api-node):** endpoints backend (presign, me, health).
-- **Data processing (backend/ingest-python):** ingestion de scans et insertion DynamoDB.
-- **Données serveur (server/data):** utilisateurs/config/fichiers XML,
-  jamais exposés directement au client.
-- **Infra (infra/):** définition des ressources AWS (S3 raw/curated,
-  DynamoDB pk/sk, Cognito, API Gateway/HTTP API, EventBridge, Lambda).
-- **Environnements (config/environments):** variables par environnement (dev/staging/prod).
-- **Sécurité (config/security):** politiques IAM minimales, CORS, paramètres Cognito.
-
-### Scripts & commandes
-
-- Lancer UI + serveur local: `npm run dev:both`
-- Lancer uniquement l’UI: `npm run dev` (dans ui)
-- Build UI: `npm run build` (dans ui)
-
-### Bonnes pratiques sécurité
-
-- Ne jamais mettre de secrets dans les variables `VITE_*` (visibles côté client).
-- Utiliser AWS Secrets Manager / Parameter Store pour les secrets en prod.
-- Appliquer le principe du moindre privilège sur les IAM policies.
+Ce projet est actuellement en cours de refonte majeure.
+Les anciennes versions et POCs ont été archivés.
