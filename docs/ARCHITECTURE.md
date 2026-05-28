@@ -7,56 +7,137 @@ Ce document décrit l'architecture logique et les flux de données de la platefo
 L'architecture repose sur le pattern "Hexagonal" (Ports & Adapters) simplifié en trois tiers.
 
 ```mermaid
-flowchart TD
-  subgraph Sources["Sources (Inputs)"]
-    PC["PingCastle XML"]
-    BH["BloodHound JSON / API"]
-  end
+erDiagram
+    %% GESTION DES ACCÈS
+    ROLES ||--o{ USERS : "RBAC"
+    ROLES {
+        int id PK
+        string name_fr
+        string name_en
+    }
 
-  subgraph Core["SITARCA Core System"]
-    direction TB
+    USERS {
+        int id PK
+        string email
+        string displayName
+        string firstName
+        string lastName
+        string role_id FK "Lien vers ROLES"
+        string auth_type "Local, SSO"
+        string issuer
+        string token
+        string language "fr, en"
+    }
+    
+    %% CONFORMITÉ (FRAMEWORKS)
+    FRAMEWORKS ||--o{ CONTROLS : "Contient"
+    FRAMEWORKS {
+        int id PK
+        string name "NIST, CIS, ISO"
+        string version "v2.1, 27001:2013"
+    }
 
-    subgraph Backend["Backend Layer"]
-      EngineN["Normalize Engine"]
+    CONTROLS {
+        int id PK
+        int framework_id FK "Lien vers CONTROLS"
+        string name "PR.IP-6"
+        string title_en "Data is destroyed according to policy"
+        string title_fr "La donnée est détrtuite conformément à la politique"
+        string description_en "csf.tools Note: Subcategories do not have detailed descriptions."
+        string description_fr "csf.tools Note: Les souscatégories n'ont pas de description détaillée."
+    }
 
-      ETL["Ingestion / ETL Service"]
-      
-      Engine["Mapping Engine"]
-      
-      API["REST API Gateway"]
-    end
+    %% LA PIERRE DE ROSETTE (Le Pivot)
+    CONTROLS ||--o{ STANDARD_DEFINITIONS : "Contrôle"
+    STANDARD_DEFINITIONS {
+        string _id PK "Code Unique (ex: VULN-AD-001)"
+        string title_fr
+        string title_en
+        string description_fr
+        string description_en
+        array mapped_controls "Lien vers FRAMEWORKS"
+    }
 
-    subgraph Data ["Data Layer view"]
-        direction TB
-        subgraph DataBase["DataBase view (Docker)"]
-            DB[("DynamoDB Local")]
-        end
-        RawData@{ title: RawData, shape: lin-cyl, label: "Store xml files parsed to json to S3 storage" } 
-    end
+    UPLOADS {
+      int id PK
+      string filename
+      string s3Key
+      string bucket
+      datetime uploadedAt
+      boolean uploadedStatus
+      string source
+      datetime uploadCompletedAt
+    }
+    UPLOADS ||--o{ PCRULES : "creates/updates"
+    PCRULES {
+        string riskid PK
+        int[] controls_ids FK
+        string type
+        string category
+        string description_fr
+        string description_en
+        string documentation_fr
+        string documentation_en
+        int maturity_level
+        string model
+        string solution_fr
+        string solution_en
+        string technical_explanation_fr
+        string technical_explanation_en
+        string title_fr
+        string title_en
+    }
+    UPLOADS ||--o{ PCFINDINGS : "loads"
+    PCRULES ||--|| PCFINDINGS : "defines"
+    PCFINDINGS {
+        int id PK
+        string riskid FK 
+        int datetime 
+        string source
+        int score
+        string scope
+        string entity_name "Objet AD affecté"
+        string status_en "New, Fixed"
+        string status_fr "Nouveau, Résolu"
+    }
 
-  end
+    NORMALIZEDWEAKNESS {
+        int id PK
+        string riskid FK
+        int datetime 
+        string source
+        int score
+        string scope
+    }
 
-  subgraph Frontend["Frontend Layer"]
-    UI["Frontend SPA (React/Vue)"]
-  end
+    FINDINGS {
+        string standard_id FK "Lien vers STANDARD_DEFINITIONS"
+        objectId scan_id FK
+        string entity_name "Objet AD affecté"
+        string status "New, Fixed"
+        object original_data "Preuve technique brute"
+    }
 
-  %% Flux
-  PC --> ETL
-  BH --> ETL
-  ETL -- "Ingest" --> RawData
-  EngineN -- Read --> RawData
-  EngineN -- "Normalizes/standardizes" --> DB
+    TOOL_MAPPING_RULES {
+        string tool_name "PingCastle, BloodHound"
+        string original_rule_id "ex: UserPasswordNeverExpires (PC)"
+        string target_standard_id FK "Lien vers STANDARD_DEFINITIONS"
+    }
 
-  Engine <-. "reads/writes/uses/completes" .-> DB
+    %% LES DONNÉES VIVANTES (Scans - bloodhound & Résultats - pingcastle)
+    SCANS {
+        date scan_date
+        string source_type
+        string uploaded_by FK "Lien vers USERS"
+    }
 
-  UI <-- "requests/answers" --> API
-  API <-- "read/writes" --> DB
-  API -- "orders" --> Engine
-  API -- "updates" --> EngineN
-  API -- "manually uploads rules_updates / vuln files / cypher queries answers" --> ETL
+    %% RELATIONS
+    
+    
+    STANDARD_DEFINITIONS ||--o{ TOOL_MAPPING_RULES : "Traduit"
+    STANDARD_DEFINITIONS ||--o{ FINDINGS : "Catégorise"
+    SCANS ||--o{ FINDINGS : "Contient"
 ```
-
----
 
 ```mermaid
 erDiagram
@@ -129,6 +210,68 @@ erDiagram
       string source
       datetime uploadCompletedAt
     }
+
+  ROLES ||--o{ USERS : assigns
+  PCRULES ||--o{ NORMALIZEDWEAKNESS : details
+  CONTROLS ||--o{ FRAMEWORKS : "included in"
+  USERS ||--o{ UPLOADS : "push updates or read update status"
+```
+
+```mermaid
+flowchart TD
+  subgraph Sources["Sources (Inputs)"]
+    subgraph AWS["AWS S3 Storage"]
+        PC["PingCastle XML files stored in S3"]
+    end
+    subgraph Saas["SpecterOps SaaS"]
+        BH["BloodHound API"]
+    end
+  end
+
+  subgraph Core["SITARCA Core System"]
+    direction TB
+
+    subgraph Backend["Backend Layer"]
+      EngineN["Normalize Engine"]
+
+      ETL["Ingestion / ETL Service"]
+      
+      Engine["Mapping Engine"]
+      
+      API["REST API Gateway"]
+    end
+
+    subgraph Data ["Data Layer"]
+        direction TB
+        subgraph DataBase["DataBase"]
+            DB[("DynamoDB")]
+        end
+        subgraph Files["AWS S3 Storage"]
+            RawData@{ title: RawData, shape: lin-cyl, label: "xml files parsed to json" } 
+        end
+    end
+
+    subgraph Frontend["Frontend Layer"]
+        UI["Frontend SPA (React/Vue)"]
+    end
+
+  end
+
+
+  %% Flux
+  ETL -- reads --> PC 
+  ETL -- requests --> BH
+  ETL -- "Ingest" --> RawData
+  EngineN -- Read --> RawData
+  EngineN -- "Normalizes/standardizes" --> DB
+
+  Engine <-. "reads/writes/uses/completes" .-> DB
+
+  UI <-- "requests/answers" --> API
+  API <-- "read/writes" --> DB
+  API -- "orders" --> Engine
+  API -- "updates" --> EngineN
+  API -- "manually uploads rules_updates / vuln files / cypher queries answers" --> ETL
 ```
 
 ## 2. Description des Flux de Données
